@@ -1,0 +1,330 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "id": "0",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_428",
+                "field": "Gunashly",
+                "platform": "DDO-13",
+                "formation": {
+                    "Balakhany": {
+                        "lat": 40.21557664163456,
+                        "lon": 51.08175592620596,
+                        "depth": null
+                    },
+                    "Fasila": {
+                        "lat": 40.31724592679906,
+                        "lon": 51.18269920270548,
+                        "depth": 3289.0
+                    }
+                },
+                "head": "POINT (507474.85 4452515.29)",
+                "xy": "LINESTRING (...)",
+                "tail": "POINT (507036.757732 4451873.124204)",
+                "perf": { "lower": 3097.0, "upper": 3071.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "ONLINE"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [507036.7577316846, 4451873.124204441]
+            }
+        },
+        {
+            "id": "1",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_347",
+                "field": "Gunashly",
+                "platform": "DDO-11",
+                "formation": {
+                    "Balakhany": { "lat": 40.2217283, "lon": 51.0499317, "depth": 8927.0 },
+                    "Fasila": { "lat": 40.2219858, "lon": 51.0386626, "depth": 2756.0 }
+                },
+                "head": "POINT (504066.211 4452944.42)",
+                "xy": "LINESTRING (...)",
+                "tail": "POINT (503174.711143 4453105.438861)",
+                "perf": { "lower": 3295.0, "upper": 3287.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "ONLINE"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [503174.71114340174, 4453105.4388610115]
+            }
+        },
+
+        {
+            "id": "2",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_348",
+                "field": "Gunashly",
+                "platform": "DDO-7",
+                "formation": {
+                    "Balakhany": { "lat": 40.2321031, "lon": 51.1057226, "depth": 1986.0 },
+                    "Fasila": { "lat": 40.2153457, "lon": 51.0997537, "depth": 2390.0 }
+                },
+                "head": "POINT (508330.2 4450897.3)",
+                "xy": "LINESTRING (...)",
+                "tail": "POINT (508059.831769 4451858.325098)",
+                "perf": { "lower": 2910.0, "upper": 2845.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "ONLINE"
+            },
+            "geometry": { "type": "Point", "coordinates": [508059.831768843, 4451858.325098146] }
+        },
+
+        {
+            "id": "3",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_205",
+                "field": "Gunashly",
+                "platform": "DDO-5",
+                "formation": {
+                    "Balakhany": { "lat": 40.23012, "lon": 51.07044, "depth": 2550.0 },
+                    "Fasila": { "lat": 40.22945, "lon": 51.06312, "depth": 3020.0 }
+                },
+                "head": "POINT (506120.44 4451320.77)",
+                "xy": "LINESTRING (506120.44 4451320.77, 506118.22 4451308.12, 506110.56 4451289.55)",
+                "tail": "POINT (506110.56 4451289.55)",
+                "perf": { "lower": 2985.0, "upper": 2950.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "ONLINE"
+            },
+            "geometry": { "type": "Point", "coordinates": [506110.56, 4451289.55] }
+        },
+
+        {
+            "id": "4",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_512",
+                "field": "Gunashly",
+                "platform": "DDO-19",
+                "formation": {
+                    "Balakhany": { "lat": 40.20877, "lon": 51.11590, "depth": 2890.0 },
+                    "Fasila": { "lat": 40.20955, "lon": 51.10833, "depth": 3155.0 }
+                },
+                "head": "POINT (509420.13 4450484.91)",
+                "xy": "LINESTRING (509420.13 4450484.91, 509417.82 4450470.12, 509408.55 4450451.66)",
+                "tail": "POINT (509408.55 4450451.66)",
+                "perf": { "lower": 3180.0, "upper": 3140.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "OFFLINE"
+            },
+            "geometry": { "type": "Point", "coordinates": [509408.55, 4450451.66] }
+        },
+
+        {
+            "id": "5",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_129",
+                "field": "Gunashly",
+                "platform": "DDO-4",
+                "formation": {
+                    "Balakhany": { "lat": 40.23544, "lon": 51.08512, "depth": 2120.0 },
+                    "Fasila": { "lat": 40.23498, "lon": 51.07655, "depth": 2600.0 }
+                },
+                "head": "POINT (507980.77 4452105.33)",
+                "xy": "LINESTRING (507980.77 4452105.33, 507976.55 4452090.22, 507970.33 4452075.11)",
+                "tail": "POINT (507970.33 4452075.11)",
+                "perf": { "lower": 2555.0, "upper": 2520.0 },
+                "method": "Daimi fontan",
+                "status": "ONLINE"
+            },
+            "geometry": { "type": "Point", "coordinates": [507970.33, 4452075.11] }
+        },
+
+        {
+            "id": "6",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_078",
+                "field": "Gunashly",
+                "platform": "DDO-8",
+                "formation": {
+                    "Balakhany": { "lat": 40.22555, "lon": 51.06288, "depth": 2400.0 },
+                    "Fasila": { "lat": 40.22440, "lon": 51.05312, "depth": 2875.0 }
+                },
+                "head": "POINT (505440.88 4452650.11)",
+                "xy": "LINESTRING (505440.88 4452650.11, 505435.77 4452631.44, 505428.66 4452612.77)",
+                "tail": "POINT (505428.66 4452612.77)",
+                "perf": { "lower": 2840.0, "upper": 2802.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "ONLINE"
+            },
+            "geometry": { "type": "Point", "coordinates": [505428.66, 4452612.77] }
+        },
+
+        {
+            "id": "7",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_266",
+                "field": "Gunashly",
+                "platform": "DDO-12",
+                "formation": {
+                    "Balakhany": { "lat": 40.21822, "lon": 51.09990, "depth": 2655.0 },
+                    "Fasila": { "lat": 40.21780, "lon": 51.09244, "depth": 3090.0 }
+                },
+                "head": "POINT (506855.99 4451802.55)",
+                "xy": "LINESTRING (506855.99 4451802.55, 506850.22 4451789.55, 506842.12 4451774.11)",
+                "tail": "POINT (506842.12 4451774.11)",
+                "perf": { "lower": 3050.0, "upper": 2995.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "SHUT-IN"
+            },
+            "geometry": { "type": "Point", "coordinates": [506842.12, 4451774.11] }
+        },
+        {
+            "id": "8",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_999",
+                "field": "Gunashly",
+                "platform": "DDO-11",
+                "formation": {
+                    "Balakhany": { "lat": 40.3217283, "lon": 51.0419317, "depth": 8927.0 },
+                    "Fasila": { "lat": 40.3219858, "lon": 51.3386626, "depth": 2756.0 }
+                },
+                "head": "POINT (504066.211 4452944.42)",
+                "xy": "LINESTRING (...)",
+                "tail": "POINT (503174.711143 4453105.438861)",
+                "perf": { "lower": 3295.0, "upper": 3287.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "ONLINE"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [503174.71114340174, 4453105.4388610115]
+            }
+        }
+        ,
+        {
+            "id": "9",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_341",
+                "field": "Gunashly",
+                "platform": "DDO-11",
+                "formation": {
+                    "Balakhany": { "lat": 40.2217283, "lon": 51.0499317, "depth": 8927.0 },
+                    "Fasila": { "lat": 40.2219858, "lon": 51.0386626, "depth": 2756.0 }
+                },
+                "head": "POINT (504066.211 4452944.42)",
+                "xy": "LINESTRING (...)",
+                "tail": "POINT (503174.711143 4453105.438861)",
+                "perf": { "lower": 3295.0, "upper": 3287.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "ONLINE"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [503174.71114340174, 4453105.4388610115]
+            }
+        },
+        {
+            "id": "10",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_147",
+                "field": "Gunashly",
+                "platform": "DDO-11",
+                "formation": {
+                    "Balakhany": { "lat": 40.2017283, "lon": 51.0499317, "depth": 8927.0 },
+                    "Fasila": { "lat": 40.2019858, "lon": 51.0386626, "depth": 2756.0 }
+                },
+                "head": "POINT (504066.211 4452944.42)",
+                "xy": "LINESTRING (...)",
+                "tail": "POINT (503174.711143 4453105.438861)",
+                "perf": { "lower": 3295.0, "upper": 3287.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "OFFLINE"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [503174.71114340174, 4453105.4388610115]
+            }
+        },
+        {
+            "id": "11",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_107",
+                "field": "Gunashly",
+                "platform": "DDO-11",
+                "formation": {
+                    "Balakhany": { "lat": 41.2017283, "lon": 50.0499317, "depth": 8927.0 },
+                    "Fasila": { "lat": 41.2019858, "lon": 50.0386626, "depth": 2756.0 }
+                },
+                "head": "POINT (504066.211 4452944.42)",
+                "xy": "LINESTRING (...)",
+                "tail": "POINT (503174.711143 4453105.438861)",
+                "perf": { "lower": 3295.0, "upper": 3287.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "SHUT-IN"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [503174.71114340174, 4453105.4388610115]
+            }
+        },
+        {
+            "id": "12",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_167",
+                "field": "Gunashly",
+                "platform": "DDO-11",
+                "formation": {
+                    "Balakhany": { "lat": 41.5017283, "lon": 50.2499317, "depth": 8927.0 },
+                    "Fasila": { "lat": 41.5019858, "lon": 50.1386626, "depth": 2756.0 }
+                },
+                "head": "POINT (504066.211 4452944.42)",
+                "xy": "LINESTRING (...)",
+                "tail": "POINT (503174.711143 4453105.438861)",
+                "perf": { "lower": 3295.0, "upper": 3287.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "ONLINE"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [503174.71114340174, 4453105.4388610115]
+            }
+        },
+        {
+            "id": "13",
+            "type": "Feature",
+            "properties": {
+                "well": "GUN_106",
+                "field": "Gunashly",
+                "platform": "DDO-11",
+                "formation": {
+                    "Balakhany": { "lat": 41.2017283, "lon": 50.0499317, "depth": 8927.0 },
+                    "Fasila": { "lat": 41.2019858, "lon": 50.0386626, "depth": 2756.0 }
+                },
+                "head": "POINT (504066.211 4452944.42)",
+                "xy": "LINESTRING (...)",
+                "tail": "POINT (503174.711143 4453105.438861)",
+                "perf": { "lower": 3295.0, "upper": 3287.0 },
+                "method": "Kompressorlu qazlift",
+                "status": "ONLINE"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [503174.71114340174, 4453105.4388610115]
+            }
+        }
+    ],
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "urn:ogc:def:crs:EPSG::32639"
+        }
+    }
+}

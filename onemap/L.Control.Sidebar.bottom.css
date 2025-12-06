@@ -1,0 +1,58 @@
+/* Bottom Sidebar Support */
+.leaflet-sidebar.bottom {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 300px;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 16px 16px 0 0;
+    transform: translateY(calc(100% - 32px));
+}
+
+.leaflet-sidebar.bottom.visible {
+    transform: translateY(0);
+}
+
+.leaflet-sidebar.bottom .sidebar-tab {
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 32px;
+    flex-direction: row;
+    padding-top: 0;
+    padding-left: 10px;
+    align-items: center;
+}
+
+.leaflet-sidebar.bottom .sidebar-tab-text {
+    writing-mode: horizontal-tb;
+    transform: none;
+    margin-top: 0;
+    margin-left: 10px;
+}
+
+.leaflet-sidebar.bottom .sidebar-tab-icon {
+    transform: rotate(-90deg);
+    margin-bottom: 0;
+    margin-right: 10px;
+}
+
+.leaflet-sidebar.bottom > .leaflet-control {
+    width: 100%;
+    height: calc(100% - 32px);
+    margin-top: 32px;
+}
+
+.leaflet-sidebar.bottom .sidebar-resize-handle {
+    top: -4px;
+    right: 0;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    cursor: row-resize;
+    display: block;
+    z-index: 2002;
+}

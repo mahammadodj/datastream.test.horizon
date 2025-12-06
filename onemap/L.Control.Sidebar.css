@@ -1,0 +1,1033 @@
+.leaflet-sidebar {
+  position: absolute;
+  height: 100%;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  padding: 0;
+  z-index: 2000;
+  transition: transform 0.5s;
+  left: 0;
+  /* Collapsed state: show only the 32px tab */
+  transform: translateX(calc(-100% + 32px));
+  /* Unified background and shadow for the whole sidebar (content + tab) */
+  background: rgba(255, 255, 255, 0.85); /* Glassmorphism */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 0 16px 16px 0;
+}
+
+.leaflet-sidebar.left.visible {
+  transform: translateX(0);
+}
+
+.leaflet-sidebar.right {
+  right: 0;
+  left: auto;
+  transform: translateX(calc(100% - 32px));
+}
+
+.leaflet-sidebar.right.visible {
+  transform: translateX(0);
+}
+
+/* NEW: Correct tab position for right sidebar */
+.leaflet-sidebar.right .sidebar-tab {
+    right: auto;
+    left: 0;
+}
+
+/* NEW: Rotate icons for right sidebar so arrows point correctly */
+.leaflet-sidebar.right .sidebar-tab-icon {
+    transform: rotate(180deg);
+}
+
+.leaflet-sidebar > .leaflet-control {
+    height: 100%;
+    /* Width reduced to leave space for the tab (32px). Scrollbar will take space inside this when it appears. */
+    width: calc(100% - 32px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 8px 15px;
+    font-size: 1.1em;
+    /* Background and shadow moved to parent .leaflet-sidebar */
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0; 
+}
+
+/* Custom scrollbar for sidebar content (Light Mode) */
+.leaflet-sidebar > .leaflet-control::-webkit-scrollbar {
+    width: 6px;
+    background: transparent;
+}
+
+.leaflet-sidebar > .leaflet-control::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.leaflet-sidebar > .leaflet-control::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Firefox scrollbar support */
+.leaflet-sidebar > .leaflet-control {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+/* Hide scrollbar when collapsed to prevent it from showing on the tab strip */
+.leaflet-sidebar:not(.visible) > .leaflet-control {
+    overflow: hidden;
+}
+
+.leaflet-touch .leaflet-sidebar > .leaflet-control {
+    box-shadow: none;
+    border: 0;
+    background-clip: padding-box; 
+}
+
+/* Sidebar Tab (Thin Column inside sidebar) */
+.sidebar-tab {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 32px;
+    height: 100%;
+    /* Transparent to blend with sidebar container background */
+    background: transparent; 
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 10px; 
+    z-index: 2001;
+}
+
+.sidebar-tab-text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    margin-top: 0px; /* Reduced from 10px to align better with icon */
+    font-weight: bold;
+    color: #666;
+    letter-spacing: 1px;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.sidebar-tab-icon {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 10px;
+    display: none; /* Hidden by default, toggled below */
+}
+
+/* Toggle icons based on sidebar visibility */
+.leaflet-sidebar:not(.visible) .icon-collapsed {
+    display: block;
+}
+
+.leaflet-sidebar.visible .icon-expanded {
+    display: block;
+}
+
+/* Close button styling - positioned inside the tab area */
+.leaflet-sidebar .close {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 32px;
+    height: 32px;
+    color: #333;
+    font-size: 24px;
+    line-height: 32px;
+    text-align: center;
+    background: transparent;
+    cursor: pointer;
+    z-index: 2002;
+    display: none; /* Force hide if present */
+}
+
+/* Hide close button when collapsed */
+.leaflet-sidebar:not(.visible) .close {
+    display: none;
+}
+
+/* Fix overlap: Shift Leaflet controls using JS-calculated variable */
+.leaflet-left {
+    left: var(--efsSidebarShift, 32px);
+    transition: left 0.5s;
+}
+
+@media (max-width: 767px) {
+    .leaflet-sidebar { width: 100%; transform: translateX(calc(-100% + 32px)); }
+    .leaflet-sidebar.visible { transform: translateX(0); }
+    .leaflet-sidebar > .leaflet-control { border-radius: 0; }
+}
+
+@media (min-width: 768px) { .leaflet-sidebar { width: 305px; } }
+@media (min-width: 992px) { .leaflet-sidebar { width: 390px; } }
+@media (min-width: 1200px) { .leaflet-sidebar { width: 460px; } }
+
+/* NEW: Fix overlap for right sidebar controls (like Dark Mode button) */
+.leaflet-right {
+    right: var(--efsSidebarRightShift, 32px);
+    transition: right 0.5s;
+}
+
+/* Styles for well selector dropdown widget */
+.well-selector-container {
+	max-width: 90%;
+}
+
+/* Styles for formation selector dropdown widget */
+.formation-selector-container {
+	max-width: 90%;
+}
+
+/* Shared styles for both selectors */
+.well-selector-container label,
+.formation-selector-container label {
+	user-select: none;
+	cursor: pointer;
+	font-size: 12px;
+}
+
+/* Custom Searchable Dropdown Styles */
+.efs-dropdown {
+    position: relative;
+    display: inline-block;
+    font-family: Arial, sans-serif;
+    width: 100%;
+}
+
+.efs-dropdown-trigger {
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    background: white;
+    min-width: 140px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.efs-dropdown-trigger:hover {
+    border-color: #999;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+}
+
+.efs-dropdown-trigger:after {
+    content: '▼';
+    font-size: 10px;
+    color: #666;
+    margin-left: 8px;
+}
+
+.efs-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 3000;
+    display: none;
+    margin-top: 2px;
+    max-height: 300px;
+    flex-direction: column;
+}
+
+.efs-dropdown-menu.active {
+    display: flex;
+}
+
+.efs-dropdown-search {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    background: #f9f9f9;
+}
+
+.efs-dropdown-search input {
+    width: 100%;
+    padding: 4px;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 12px;
+    outline: none;
+}
+
+.efs-dropdown-search input:focus {
+    border-color: #2196F3;
+}
+
+.efs-dropdown-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    max-height: 170px; /* Show approx 6 items */
+}
+
+.efs-dropdown-option {
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #333;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.efs-dropdown-option:last-child {
+    border-bottom: none;
+}
+
+.efs-dropdown-option:hover {
+    background-color: #f0f0f0;
+}
+
+.efs-dropdown-option.selected {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    font-weight: bold;
+}
+
+/* NEW: base layout for selectors when positioned near sidebar (GPU-accelerated) */
+.well-selector-container,
+.formation-selector-container {
+	position: absolute;
+	top: 20px;
+	left: 15px;           /* base gap from map edge */
+	bottom: auto;
+	transform-origin: top left;
+	transition: transform 0.35s ease;
+	will-change: transform;
+	z-index: 5000; /* Increased to ensure visibility over sidebar */
+	pointer-events: auto;
+
+    /* Glassmorphism Island Style */
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 8px 12px !important;
+}
+
+.formation-selector-container {
+	transform: translateX(var(--efsSidebarShift, 0px));
+	margin-top: 0;
+}
+.well-selector-container {
+	transform: translateX(calc(var(--efsSidebarShift, 0px) + var(--efsFormationWidth, 220px) + 16px));
+	margin-top: 0;
+}
+
+/* NEW: ensure map container can host absolutely positioned widgets */
+.leaflet-container {
+	position: relative;
+	--efsTopControlOffset: 0px;
+	--efsSliderTop: auto;
+	--efsSliderBottom: 18px;
+}
+
+/* Lower the default Leaflet controls so they sit beneath the selectors */
+.leaflet-top.leaflet-left {
+	top: var(--efsTopControlOffset, 0px);
+}
+
+/* UPDATE: selector containers (raise above sidebar and map overlays) */
+.well-selector-container,
+.formation-selector-container {
+	z-index: 5000;            /* above sidebar (2000) */
+	pointer-events: auto;
+}
+
+@media (max-width: 767px) {
+	.well-selector-container,
+	.formation-selector-container {
+		left: 10px;
+		right: 10px;
+		top: auto;
+		bottom: 10px !important;
+		transform: none !important;
+		padding: 8px !important;
+		font-size: 12px;
+	}
+	
+	.well-selector-container select,
+	.formation-selector-container select {
+		min-width: 120px;
+		font-size: 12px;
+		padding: 4px 6px;
+	}
+	
+	.well-selector-container label,
+	.formation-selector-container label {
+		font-size: 11px;
+	}
+	
+	.time-slider-container {
+		bottom: 18px !important;
+		left: 10px !important;
+		right: 10px !important;
+		transform: none !important;
+		width: auto !important;
+		min-width: 0 !important;
+	}
+}
+
+/* NEW: Time slider container styles (Range Selection) */
+.time-slider-container {
+	position: absolute;
+	bottom: 30px;
+	left: 15px;
+	transform: translateX(var(--efsSidebarShift, 0px));
+	z-index: 5000; /* Increased to ensure visibility over sidebar */
+	background: rgba(255, 255, 255, 0.85); /* Glassmorphism */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+	padding: 10px 14px;
+	border-radius: 12px;
+	box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	min-width: 260px;
+	font-family: Arial, sans-serif;
+	transition: transform 0.35s ease;
+	will-change: transform;
+}
+
+/* NEW: Controls row for Play button and Label */
+.time-slider-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+}
+
+.time-slider-play-btn {
+    background: #2196F3;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.time-slider-play-btn:hover {
+    background: #1976D2;
+}
+
+.time-slider-play-btn svg {
+    display: block;
+}
+
+.time-slider-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    margin-bottom: 2px;
+}
+
+.time-slider-container .time-slider-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: #333;
+	text-align: center;
+    flex-grow: 1; /* Allow label to take available space */
+}
+
+.time-slider-wrapper {
+	position: relative;
+	height: 20px;
+	width: 100%;
+}
+
+.time-slider-track {
+	position: absolute;
+	top: 50%;
+	left: 0;
+	right: 0;
+	height: 4px;
+	background: #d5d5d5;
+	border-radius: 2px;
+	transform: translateY(-50%);
+}
+
+.time-slider-progress {
+	position: absolute;
+	top: 50%;
+	height: 4px;
+	background: #2196F3;
+	border-radius: 2px;
+	transform: translateY(-50%);
+	z-index: 1;
+}
+
+.time-slider-container input[type="range"] {
+	position: absolute;
+	top: 50%;
+	left: 0;
+	width: 100%;
+	transform: translateY(-50%);
+	appearance: none;
+	background: transparent;
+	pointer-events: none; /* Let clicks pass through to track/other input */
+	z-index: 2;
+	margin: 0;
+	height: 0;
+	outline: none;
+}
+
+.time-slider-container input[type="range"]::-webkit-slider-thumb {
+	appearance: none;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #2196F3;
+	cursor: pointer;
+	pointer-events: auto; /* Re-enable clicks on thumb */
+	box-shadow: 0 0 2px rgba(0,0,0,0.4);
+	margin-top: -8px; /* Center thumb */
+}
+
+.time-slider-container input[type="range"]::-moz-range-thumb {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #2196F3;
+	cursor: pointer;
+	pointer-events: auto;
+	box-shadow: 0 0 2px rgba(0,0,0,0.4);
+	border: none;
+}
+
+.time-slider-container input[type="range"].is-top {
+	z-index: 3;
+}
+
+/* Toggle Buttons */
+.leaflet-control-dark-mode {
+    background-color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #333;
+    text-decoration: none;
+}
+
+.leaflet-control-dark-mode:hover {
+    background-color: #f4f4f4;
+    color: #000;
+}
+
+/* Dark Mode Styles */
+body.dark-theme .leaflet-sidebar {
+    background-color: rgba(30, 30, 30, 0.85) !important;
+    background: rgba(30, 30, 30, 0.85) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    color: #eee;
+}
+
+body.dark-theme .leaflet-sidebar > .leaflet-control {
+    background-color: transparent;
+    color: #eee;
+    border-color: transparent;
+    scrollbar-color: #555 #222;
+}
+
+body.dark-theme .leaflet-sidebar > .leaflet-control::-webkit-scrollbar {
+    width: 8px;
+    background: #222;
+}
+
+body.dark-theme .leaflet-sidebar > .leaflet-control::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+body.dark-theme .sidebar-tab {
+    background-color: transparent;
+}
+
+body.dark-theme .sidebar-tab-text,
+body.dark-theme .sidebar-tab-icon,
+body.dark-theme .leaflet-sidebar .close {
+    color: #eee;
+}
+
+body.dark-theme .well-selector-container,
+body.dark-theme .formation-selector-container,
+body.dark-theme .time-slider-container {
+    background-color: rgba(30, 30, 30, 0.85) !important;
+    color: #eee;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .well-selector-container label,
+body.dark-theme .formation-selector-container label,
+body.dark-theme .time-slider-title,
+body.dark-theme .time-slider-label {
+    color: #eee;
+}
+
+body.dark-theme .efs-dropdown-trigger {
+    background-color: #333;
+    border-color: #555;
+    color: #eee;
+}
+
+body.dark-theme .efs-dropdown-trigger:hover {
+    border-color: #777;
+}
+
+body.dark-theme .efs-dropdown-trigger:after {
+    color: #aaa;
+}
+
+body.dark-theme .efs-dropdown-menu {
+    background-color: #333;
+    border-color: #555;
+}
+
+body.dark-theme .efs-dropdown-search {
+    background-color: #2a2a2a;
+    border-bottom-color: #444;
+}
+
+body.dark-theme .efs-dropdown-search input {
+    background-color: #444;
+    color: #eee;
+    border-color: #666;
+}
+
+body.dark-theme .efs-dropdown-option {
+    color: #eee;
+    border-bottom-color: #444;
+}
+
+body.dark-theme .efs-dropdown-option:hover {
+    background-color: #444;
+}
+
+body.dark-theme .efs-dropdown-option.selected {
+    background-color: #1a3a5a;
+    color: #64b5f6;
+}
+
+body.dark-theme .time-slider-play-btn {
+    background: #1a3a5a;
+    color: #64b5f6;
+}
+body.dark-theme .time-slider-play-btn:hover {
+    background: #2a4a6a;
+}
+
+body.dark-theme .leaflet-control-dark-mode {
+    background-color: #222;
+    color: #eee;
+}
+
+body.dark-theme .leaflet-control-dark-mode:hover {
+    background-color: #333;
+}
+
+/* NEW: Dark mode for Filter Accordion elements */
+body.dark-theme .efs-col {
+    background-color: #333;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    padding-bottom: 0;
+}
+
+body.dark-theme .efs-head {
+    color: #eee !important;
+    padding: 10px;
+}
+
+body.dark-theme .efs-col.active .efs-head {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .efs-head:hover {
+    background-color: #444;
+}
+
+body.dark-theme .efs-body {
+    padding: 10px;
+    background-color: #333;
+    border-radius: 0 0 4px 4px;
+}
+
+body.dark-theme .efs-search {
+    background-color: #2a2a2a;
+    border-color: #555;
+    color: #eee;
+}
+
+/* NEW: Dark mode scrollbar for filter lists */
+body.dark-theme .efs-list {
+    scrollbar-color: #555 #222;
+}
+
+body.dark-theme .efs-list::-webkit-scrollbar {
+    width: 6px;
+    background: #222;
+}
+
+body.dark-theme .efs-list::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+
+body.dark-theme .efs-item {
+    color: #eee !important;
+}
+
+body.dark-theme .efs-item:hover {
+    background-color: #444;
+    border-radius: 2px;
+}
+
+body.dark-theme .efs-count {
+    color: #aaa;
+}
+
+body.dark-theme .efs-show-more {
+    color: #64b5f6;
+}
+
+body.dark-theme .efs-show-more:hover {
+    color: #90caf9;
+}
+
+body.dark-theme .accordion-arrow {
+    color: #ccc;
+}
+
+/* Radius Search Control */
+.leaflet-control-radius-search {
+    background-color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #333;
+}
+
+.radius-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: inherit;
+    text-decoration: none;
+}
+
+.leaflet-control-radius-search:hover {
+    background-color: #f4f4f4;
+}
+
+.radius-search-btn.active {
+    color: #2196F3;
+    background-color: #e3f2fd;
+    border-radius: 4px;
+}
+
+.crosshair-cursor {
+    cursor: crosshair !important;
+}
+
+/* Dark mode for Radius Search */
+body.dark-theme .leaflet-control-radius-search {
+    background-color: #222;
+    color: #eee;
+}
+body.dark-theme .leaflet-control-radius-search:hover {
+    background-color: #333;
+}
+body.dark-theme .radius-search-btn.active {
+    color: #64b5f6;
+    background-color: #1a3a5a;
+}
+
+/* Invert map controls in dark mode if needed, or keep them light/standard */
+body.dark-theme .leaflet-bar a {
+    background-color: #222;
+    color: #eee;
+    border-bottom-color: #444;
+}
+body.dark-theme .leaflet-bar a:hover {
+    background-color: #333;
+}
+
+/* Resize Handle */
+.sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    z-index: 2003;
+    background: transparent;
+}
+
+.sidebar-resize-handle:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+.leaflet-sidebar.left .sidebar-resize-handle {
+    right: 0;
+}
+
+.leaflet-sidebar.right .sidebar-resize-handle {
+    left: 0;
+}
+
+.leaflet-sidebar:not(.visible) .sidebar-resize-handle {
+    display: none;
+}
+
+body.sidebar-resizing {
+    cursor: col-resize;
+    user-select: none;
+}
+
+/* Accordion Styles for Filter Sidebar */
+.efs-col {
+    border-bottom: 1px solid #eee;
+    margin-bottom: 0;
+    padding-bottom: 5px;
+}
+
+.efs-head {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 5px;
+    user-select: none;
+    font-weight: 600;
+    color: #333;
+}
+
+.efs-head:hover {
+    background-color: #f9f9f9;
+}
+
+.accordion-arrow {
+    font-size: 10px;
+    transition: transform 0.3s ease;
+    color: #999;
+}
+
+.efs-col.active .accordion-arrow {
+    transform: rotate(180deg);
+}
+
+.efs-body {
+    display: none;
+    padding: 0 5px 10px 5px;
+}
+
+.efs-col.active .efs-body {
+    display: block;
+}
+
+/* NEW: Search input style */
+.efs-search {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+/* Limit list height and enable scrolling for long lists (e.g. during search) */
+.efs-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Show More Button */
+.efs-show-more {
+    background: none;
+    border: none;
+    color: #2196F3;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 8px 0;
+    margin-top: 5px;
+    width: 100%;
+    text-align: left;
+    font-weight: 600;
+}
+
+.efs-show-more:hover {
+    text-decoration: underline;
+    color: #1976D2;
+}
+
+/* Ensure items display correctly */
+.efs-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    cursor: pointer;
+}
+
+/* Customizing Leaflet Layers Control (Map Style Menu) */
+.leaflet-control-layers {
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    padding: 6px !important;
+    font-family: Arial, sans-serif;
+    color: #333;
+}
+
+.leaflet-control-layers-expanded {
+    padding: 12px !important;
+    min-width: 140px;
+}
+
+.leaflet-control-layers label {
+    display: flex !important;
+    align-items: center;
+    margin-bottom: 8px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.leaflet-control-layers label:last-child {
+    margin-bottom: 0;
+}
+
+.leaflet-control-layers-base input {
+    margin-right: 8px;
+    cursor: pointer;
+    accent-color: #2196F3;
+    width: 16px;
+    height: 16px;
+}
+
+.leaflet-control-layers-separator {
+    border-top: 1px solid #ddd;
+    margin: 8px 0;
+}
+
+/* Dark mode support for layers control */
+body.dark-theme .leaflet-control-layers {
+    background: rgba(30, 30, 30, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #eee;
+}
+
+body.dark-theme .leaflet-control-layers-separator {
+    border-top-color: #555;
+}
+
+/* Bottom Sidebar Support */
+.leaflet-sidebar.bottom {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 300px;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 16px 16px 0 0;
+    transform: translateY(calc(100% - 32px));
+}
+
+.leaflet-sidebar.bottom.visible {
+    transform: translateY(0);
+}
+
+.leaflet-sidebar.bottom .sidebar-tab {
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 32px;
+    flex-direction: row;
+    padding-top: 0;
+    padding-left: 10px;
+    align-items: center;
+}
+
+.leaflet-sidebar.bottom .sidebar-tab-text {
+    writing-mode: horizontal-tb;
+    transform: none;
+    margin-top: 0;
+    margin-left: 10px;
+}
+
+.leaflet-sidebar.bottom .sidebar-tab-icon {
+    transform: rotate(-90deg);
+    margin-bottom: 0;
+    margin-right: 10px;
+}
+
+.leaflet-sidebar.bottom > .leaflet-control {
+    width: 100%;
+    height: calc(100% - 32px);
+    margin-top: 32px;
+}
+
+.leaflet-sidebar.bottom .sidebar-resize-handle {
+    top: -4px;
+    right: 0;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    cursor: row-resize;
+    display: block;
+    z-index: 2002;
+}

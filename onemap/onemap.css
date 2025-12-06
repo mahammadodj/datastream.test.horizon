@@ -1,0 +1,708 @@
+#onemap-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* min-height: 100vh; Removed to fit in tab */
+  left: 0;
+  top: 0;
+}
+
+.well-search-control .search-input{
+  width: 240px;
+}
+
+.well-search-control .search-tooltip {
+  width: 220px;
+  overflow-y: auto;
+}
+
+.well-search-control,
+.well-search-tooltip {
+  z-index: 1200 !important;
+}
+
+.horizon-search-control .search-input{
+  width: 240px;
+}
+
+.horizon-search-control .search-tooltip {
+  width: 220px;
+  overflow-y: auto;
+}
+
+.horizon-search-control,
+.horizon-search-tooltip {
+  z-index: 1100;
+}
+
+.leaflet-container {
+  font-size: 1rem;
+  background-color: #aad3df; /* Match OSM ocean color */
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.leaflet-control-recenter {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin: 6px;
+}
+
+.leaflet-control-recenter .recenter-btn {
+  --rc-size: 36px;
+  --rc-bg: rgba(28, 28, 30, 0.88);
+  --rc-bg-hover: rgba(28, 28, 30, 0.96);
+  --rc-color: #fff;
+  width: var(--rc-size);
+  height: var(--rc-size);
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--rc-bg);
+  color: var(--rc-color);
+  text-decoration: none;
+  line-height: 0;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.leaflet-control-recenter .recenter-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.leaflet-control-recenter .recenter-btn:hover {
+  transform: scale(1.08);
+  background: var(--rc-bg-hover);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.leaflet-control-recenter .recenter-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45) inset;
+}
+
+.leaflet-control-recenter .recenter-btn:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.sidebar-hint {
+  margin-top: 12px;
+  color: #666;
+}
+
+.efs-col {
+  border: 1px solid #e3e3e3;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+
+.efs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.efs-title {
+  font-weight: 600;
+}
+
+.efs-search {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.efs-list {
+  margin-top: 6px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.efs-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 13px;
+}
+
+.efs-item:last-child {
+  border-bottom: none;
+}
+
+.efs-count {
+  color: #666;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.efs-btn {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #f7f7f7;
+  cursor: pointer;
+}
+
+.efs-btn:hover {
+  background: #efefef;
+}
+
+.efs-range {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 20px;
+}
+
+.efs-range-values {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: #555;
+}
+
+.efs-range-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.efs-range-inputs input[type="range"] {
+  width: 100%;
+  accent-color: #2c7be5;
+}
+
+.efs-range-slider{
+  top: 8px;
+  height: 5px;
+  border-radius: 5px;
+  background: #ddd;
+  position: relative;
+}
+
+.efs-range-progress{
+  height: 5px;
+  left: 0%;
+  right: 0%;
+  position: absolute;
+  border-radius: 5px;
+  background: #0075ff;
+}
+
+.efs-include-null {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #555;
+  cursor: pointer;
+}
+
+.efs-include-null input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: #2c7be5;
+}
+
+.efs-range-pointers{
+  position: relative;
+}
+
+.efs-range-pointers input{
+  position: absolute;
+  top: -5px;
+  height: 5px;
+  width: 100%;
+  background: none;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+  z-index: 1;
+}
+
+.efs-range-pointers input.is-top{
+  z-index: 2;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  height: 17px;
+  width: 17px;
+  border: 1px solid #666;
+  border-radius: 50%;
+  pointer-events: auto;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #0075ff;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  height: 17px;
+  width: 17px;
+  border: 1px solid #666;
+  border-radius: 50%;
+  pointer-events: auto;
+  -moz-appearance: none;
+  appearance: none;
+  background: #0075ff;
+  cursor: pointer;
+}
+
+.marker-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.marker-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.marker-settings-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.marker-settings-label {
+  font-weight: 600;
+}
+
+.marker-settings-select {
+  padding: 6px 10px;
+  border: 1px solid #c9c9c9;
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.marker-settings-select:focus {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.marker-settings-reset {
+  padding: 6px 12px;
+  border: 1px solid #cfcfcf;
+  border-radius: 6px;
+  background: #f6f6f6;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.marker-settings-reset:hover {
+  background: #ebebeb;
+}
+
+.marker-settings-placeholder {
+  color: #666;
+}
+
+.marker-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.marker-color-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid #e1e1e1;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.marker-color-input {
+  width: 44px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.marker-color-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.marker-color-count {
+  font-size: 13px;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fix for white grid lines between tiles (sub-pixel rendering artifacts) */
+.leaflet-container {
+    background-color: #aad3df; /* Match OSM ocean color */
+}
+
+/* Dark Theme Overrides */
+.dark-theme .leaflet-container {
+    background-color: #1e1e1e; /* Match dark theme background */
+}
+
+.dark-theme .efs-col {
+  background: #2c2c2c;
+  border-color: #444;
+  color: #eee;
+}
+
+.dark-theme .efs-title {
+  color: #fff;
+}
+
+.dark-theme .efs-range-values {
+  color: #ccc;
+}
+
+.dark-theme .efs-include-null {
+  color: #ccc;
+}
+
+.dark-theme .efs-count {
+  color: #aaa;
+}
+
+.dark-theme .efs-search {
+  background: #333;
+  border-color: #555;
+  color: #fff;
+}
+
+.dark-theme .efs-list {
+  border-color: #444;
+  background: #333;
+}
+
+.dark-theme .efs-item {
+  border-bottom-color: #444;
+  color: #eee;
+}
+
+.dark-theme .sidebar-hint {
+  color: #aaa;
+}
+
+.dark-theme .leaflet-sidebar-header {
+    background-color: #2c2c2c;
+    color: #fff;
+}
+
+.dark-theme .leaflet-sidebar-content {
+    background-color: #1e1e1e;
+}
+
+.dark-theme .leaflet-sidebar-tabs {
+    background-color: #2c2c2c;
+}
+
+.dark-theme .leaflet-sidebar-tabs > li > a {
+    color: #ccc;
+}
+
+.dark-theme .leaflet-sidebar-tabs > li.active, 
+.dark-theme .leaflet-sidebar-tabs > ul > li.active {
+    background-color: #1e1e1e;
+    color: #fff;
+}
+
+/* Chart Dashboard Frame */
+.chart-dashboard-frame {
+  border: 1px solid #e3e3e3;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-top: 10px;
+  resize: vertical;
+  overflow: hidden;
+  min-height: 200px;
+}
+
+.dark-theme .chart-dashboard-frame {
+  background: #2c2c2c;
+  border-color: #444;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Chart Settings Panel */
+.chart-settings-panel {
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  border-radius: 4px;
+  color: #333;
+}
+
+.dark-theme .chart-settings-panel {
+  background-color: #2c2c2c;
+  border-color: #444;
+  color: #eee;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.dark-theme .chart-settings-panel select {
+    background-color: #333;
+    color: #eee;
+    border: 1px solid #555;
+}
+
+/* Full View Chart Modal */
+.chart-full-view-container {
+  background-color: white;
+  color: #333;
+}
+
+.dark-theme .chart-full-view-container {
+  background-color: #2c2c2c;
+  color: #eee;
+}
+
+.chart-close-btn {
+  color: #333;
+}
+
+.dark-theme .chart-close-btn {
+  color: #eee;
+}
+
+/* Zoom Controls */
+.axis-zoom-control {
+    background-color: white;
+    border: 1px solid #ccc;
+}
+
+.dark-theme .axis-zoom-control {
+    background-color: #333 !important;
+    border-color: #555 !important;
+}
+
+.zoom-control-btn {
+    background-color: white;
+    color: #333;
+}
+
+.zoom-control-btn:hover {
+    background-color: #f0f0f0 !important;
+}
+
+.dark-theme .zoom-control-btn {
+    background-color: #333 !important;
+    color: #eee !important;
+    border-color: #555 !important;
+}
+
+.dark-theme .zoom-control-btn:hover {
+    background-color: #444 !important;
+}
+
+/* Chart Action Buttons (Full View, Settings) */
+.chart-action-btn {
+    background-color: #f8f9fa;
+    border: 1px solid #ccc;
+    color: #333;
+}
+
+.dark-theme .chart-action-btn {
+    background-color: #333 !important;
+    border-color: #555 !important;
+    color: #eee !important;
+}
+
+.dark-theme .chart-action-btn:hover {
+    background-color: #444 !important;
+}
+
+.chart-placeholder-text {
+    color: #888;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.dark-theme .chart-placeholder-text {
+    color: #aaa;
+}
+
+/* NEW: Invert tile colors for dark mode */
+body.dark-theme .field-contours-layer {
+    filter: invert(1) hue-rotate(180deg);
+}
+
+/* Chart Series Tags */
+.chart-series-tag {
+  display: flex;
+  align-items: center;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 10px;
+  color: #333;
+  cursor: grab;
+}
+
+.dark-theme .chart-series-tag {
+  background-color: #333;
+  border-color: #555;
+  color: #eee;
+}
+
+/* Chart Controls Theme Support */
+.axis-drawer-toggle, .axis-drawer-toggle-right {
+    background-color: #eee !important;
+    border: 1px solid #ccc !important;
+    color: #666 !important;
+    transition: all 0.2s ease;
+}
+
+.dark-theme .axis-drawer-toggle, .dark-theme .axis-drawer-toggle-right {
+    background-color: #333 !important;
+    border-color: #555 !important;
+    color: #ccc !important;
+}
+
+.chart-header-btn {
+    background-color: rgba(0,0,0,0.05) !important;
+    border: 1px solid #ddd !important;
+    color: #666 !important;
+    transition: all 0.2s ease;
+}
+
+.dark-theme .chart-header-btn {
+    background-color: rgba(255,255,255,0.05) !important;
+    border-color: #555 !important;
+    color: #ccc !important;
+}
+
+.chart-header-btn:hover {
+    background-color: rgba(0,0,0,0.1) !important;
+}
+
+.dark-theme .chart-header-btn:hover {
+    background-color: rgba(255,255,255,0.1) !important;
+}
+
+.chart-header-btn.active {
+    background-color: rgba(46, 204, 113, 0.1) !important;
+    border-color: #2ecc71 !important;
+}
+
+.dark-theme .chart-header-btn.active {
+    background-color: rgba(46, 204, 113, 0.2) !important;
+    border-color: #2ecc71 !important;
+}
+
+.chart-toolbar-btn {
+    color: #666 !important;
+    transition: color 0.2s ease;
+}
+
+.dark-theme .chart-toolbar-btn {
+    color: #ccc !important;
+}
+
+.chart-drag-handle {
+    color: #666 !important;
+}
+
+.dark-theme .chart-drag-handle {
+    color: #ccc !important;
+}
+
+/* Chart Controls Theme Support */
+.axis-drawer-toggle, .axis-drawer-toggle-right {
+    background-color: #eee !important;
+    border: 1px solid #ccc !important;
+    color: #666 !important;
+    transition: all 0.2s ease;
+}
+
+.dark-theme .axis-drawer-toggle, .dark-theme .axis-drawer-toggle-right {
+    background-color: #333 !important;
+    border-color: #555 !important;
+    color: #ccc !important;
+}
+
+.chart-header-btn {
+    background-color: rgba(0,0,0,0.05) !important;
+    border: 1px solid #ddd !important;
+    color: #666 !important;
+    transition: all 0.2s ease;
+}
+
+.dark-theme .chart-header-btn {
+    background-color: rgba(255,255,255,0.05) !important;
+    border-color: #555 !important;
+    color: #ccc !important;
+}
+
+.chart-header-btn:hover {
+    background-color: rgba(0,0,0,0.1) !important;
+}
+
+.dark-theme .chart-header-btn:hover {
+    background-color: rgba(255,255,255,0.1) !important;
+}
+
+.chart-header-btn.active {
+    background-color: rgba(46, 204, 113, 0.1) !important;
+    border-color: #2ecc71 !important;
+}
+
+.dark-theme .chart-header-btn.active {
+    background-color: rgba(46, 204, 113, 0.2) !important;
+    border-color: #2ecc71 !important; /* Keep green border */
+}
+
+.chart-toolbar-btn {
+    color: #666 !important;
+    transition: color 0.2s ease;
+}
+
+.dark-theme .chart-toolbar-btn {
+    color: #ccc !important;
+}
+
+.chart-drag-handle {
+    color: #666 !important;
+}
+
+.dark-theme .chart-drag-handle {
+    color: #ccc !important;
+}
+

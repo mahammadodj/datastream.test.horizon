@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="OneMap - Interactive Map Visualization" />
+  <meta name="author" content="Javid Shiriyev" />
+  
+  <title>OneMap</title>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/> -->
+  <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" integrity="sha384-f+5ueJUSVTts5w31cpiAeriD3134eXSnL//1cJCcmTPkyO6v7j98iJKup9dv6+fg" crossorigin="anonymous" />
+  <link rel="stylesheet" href="/onemap/L.Control.Sidebar.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.2/dist/leaflet-search.min.css" integrity="sha384-REIuC/quYqJV/qB1xEce8EVloOP7BrMb8UptyzM97otOZeYzO/aI0bVbcd5mlhFP" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ljagis/leaflet-measure@2.1.7/dist/leaflet-measure.min.css" integrity="sha384-QTv0u/5n8tVESSKG35OMKsPun/jF/OeSLSo2PNPV/rk9/IsMXbCgxgugGVmsCPVZ" crossorigin="anonymous"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="/onemap/onemap.css"/>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous" defer></script>
+  <script src="/onemap/L.Control.Sidebar.js" defer></script>
+  <script src="https://unpkg.com/leaflet-search@3.0.2/dist/leaflet-search.min.js" integrity="sha384-JI+HrtbrAPI2WVM8g/f/KIjqz75GFxrPVIyNNG5bDJEeNFmN+PgvMvc7zfFwkQRg" crossorigin="anonymous" defer></script>
+  <script src="https://cdn.jsdelivr.net/gh/ljagis/leaflet-measure@2.1.7/dist/leaflet-measure.min.js" integrity="sha384-/iJukUJEolULZCN2+jrgskyKOLCBltz4OE3Y1FbY/pp0Ud8j4cgP0Xx4XxlnHJCD" crossorigin="anonymous" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+
+</head>
+<body>
+  <!-- Navigation Tabs -->
+  <ul class="nav nav-tabs" id="mainTabs" role="tablist" style="background-color: #f8f9fa; padding-top: 5px; padding-left: 10px;">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-content" type="button" role="tab" aria-controls="map-content" aria-selected="true">Map Analysis</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-content" type="button" role="tab" aria-controls="dashboard-content" aria-selected="false">Analytical Dashboard</button>
+    </li>
+  </ul>
+
+  <!-- Tab Content -->
+  <div class="tab-content" id="mainTabsContent" style="height: calc(100vh - 42px);">
+    <!-- Map Analysis Tab -->
+    <div class="tab-pane fade show active" id="map-content" role="tabpanel" aria-labelledby="map-tab" style="height: 100%; position: relative;">
+      <div class="onemap-map" id="onemap-map"></div>
+      <div id="onemap-sidebar-filter">
+        <div class="leaflet-sidebar-content">
+          <div class="leaflet-sidebar-pane" id="filter" aria-labelledby="filter-heading">
+            <h1 class="leaflet-sidebar-header" id="filter-heading">Filters</h1>
+            <div id="filters-container"></div>
+            <p class="sidebar-hint">Click values or drag sliders to filter. Each box filters one column (AND logic).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytical Dashboard Tab -->
+    <div class="tab-pane fade" id="dashboard-content" role="tabpanel" aria-labelledby="dashboard-tab" style="height: 100%; padding: 20px;">
+      <!-- Content will be added later -->
+    </div>
+  </div>
+
+  <div class="modal fade" id="marker-settings-modal" tabindex="-1" role="dialog" aria-labelledby="marker-settings-title" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="marker-settings-title">Marker Settings</h4>
+        </div>
+        <div class="modal-body">
+          <div class="container-fluid">
+            <p class="text-muted">Marker configuration form will be injected here.</p>
+          </div>
+        </div>
+        <!-- <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div> -->
+      </div>
+    </div>
+  </div>
+  <script src="/onemap/View.Control.js" defer></script>
+  <script src="/onemap/Marker.Settings.js" defer></script>
+</body>
+</html>
