@@ -420,10 +420,145 @@ const injectDarkTableStyles = () => {
         .table tr.modified > * {
             background-color: #fff3cd;
         }
+        /* Selection Styles */
+        .table td.selected-cell {
+            background-color: rgba(0, 117, 255, 0.2) !important;
+            border: 1px solid #0075ff !important;
+        }
+        .dark-theme .table td.selected-cell {
+            background-color: rgba(0, 117, 255, 0.3) !important;
+            border: 1px solid #66b0ff !important;
+        }
     `;
     document.head.appendChild(style);
 };
 injectDarkTableStyles();
+
+// Selection Logic Variables
+let isSelecting = false;
+let selectionStart = null; // { row: index, col: index }
+let selectionEnd = null;   // { row: index, col: index }
+
+function enableTableSelection() {
+    const table = document.querySelector('#rates-table-wrapper table');
+    if (!table) return;
+
+    const tbody = document.getElementById('rates-table-body');
+
+    // Helper to get cell coordinates
+    const getCoords = (cell) => {
+        const row = cell.parentElement.rowIndex - 1; // Adjust for header
+        const col = cell.cellIndex;
+        return { row, col };
+    };
+
+    // Helper to clear selection
+    const clearSelection = () => {
+        const selected = tbody.querySelectorAll('.selected-cell');
+        selected.forEach(cell => cell.classList.remove('selected-cell'));
+        selectionStart = null;
+        selectionEnd = null;
+    };
+
+    // Helper to update selection visual
+    const updateSelection = () => {
+        if (!selectionStart || !selectionEnd) return;
+        
+        const minRow = Math.min(selectionStart.row, selectionEnd.row);
+        const maxRow = Math.max(selectionStart.row, selectionEnd.row);
+        const minCol = Math.min(selectionStart.col, selectionEnd.col);
+        const maxCol = Math.max(selectionStart.col, selectionEnd.col);
+
+        const rows = tbody.rows;
+        for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].cells;
+            for (let j = 0; j < cells.length; j++) {
+                const cell = cells[j];
+                if (i >= minRow && i <= maxRow && j >= minCol && j <= maxCol) {
+                    cell.classList.add('selected-cell');
+                } else {
+                    cell.classList.remove('selected-cell');
+                }
+            }
+        }
+    };
+
+    tbody.addEventListener('mousedown', (e) => {
+        const cell = e.target.closest('td');
+        if (!cell) return;
+        
+        // Left click only
+        if (e.button !== 0) return;
+
+        // If cell is currently being edited, don't start row/col selection
+        if (cell.isContentEditable) return;
+
+        isSelecting = true;
+        clearSelection();
+        selectionStart = getCoords(cell);
+        selectionEnd = selectionStart;
+        updateSelection();
+        
+        // Prevent text selection
+        e.preventDefault();
+    });
+
+    tbody.addEventListener('mouseover', (e) => {
+        if (!isSelecting) return;
+        const cell = e.target.closest('td');
+        if (!cell) return;
+
+        selectionEnd = getCoords(cell);
+        updateSelection();
+    });
+
+    document.addEventListener('mouseup', () => {
+        isSelecting = false;
+    });
+
+    // Copy Handler
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+            if (!selectionStart || !selectionEnd) return;
+            
+            // Check if focus is not in an input
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+
+            e.preventDefault();
+            
+            const minRow = Math.min(selectionStart.row, selectionEnd.row);
+            const maxRow = Math.max(selectionStart.row, selectionEnd.row);
+            const minCol = Math.min(selectionStart.col, selectionEnd.col);
+            const maxCol = Math.max(selectionStart.col, selectionEnd.col);
+
+            let csv = '';
+            const rows = tbody.rows;
+            
+            for (let i = minRow; i <= maxRow; i++) {
+                let rowStr = [];
+                const cells = rows[i].cells;
+                for (let j = minCol; j <= maxCol; j++) {
+                    rowStr.push(cells[j].innerText);
+                }
+                csv += rowStr.join('\t') + '\n';
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(csv).then(() => {
+                    // Visual feedback?
+                    const status = document.getElementById('rates-status');
+                    if (status) {
+                        status.textContent = 'Copied to clipboard!';
+                        setTimeout(() => status.textContent = '', 2000);
+                    }
+                });
+            }
+        }
+    });
+}
+
+// Call this once
+document.addEventListener('DOMContentLoaded', enableTableSelection);
 
 function renderRatesTable() {
     const start = (currentPage - 1) * rowsPerPage;
@@ -473,8 +608,14 @@ function renderRatesTable() {
             
             // Make editable (except well and date which are keys)
             if (col !== 'well' && col !== 'date') {
-                td.contentEditable = true;
+                // Double click to edit
+                td.ondblclick = function() {
+                    td.contentEditable = true;
+                    td.focus();
+                };
+                
                 td.onblur = function() {
+                    td.contentEditable = false;
                     const newValue = td.textContent;
                     const originalValue = row[col];
                     
@@ -678,11 +819,13 @@ function setupAnalysisTab() {
             tableMenu.style.top = `${e.clientY}px`;
             tableMenu.style.display = 'block';
 
-            const closeMenu = () => {
-                if (tableMenu) tableMenu.style.display = 'none';
-                document.removeEventListener('click', closeMenu);
+            const closeMenu = (event) => {
+                if (tableMenu && !tableMenu.contains(event.target)) {
+                    tableMenu.remove();
+                    document.removeEventListener('mousedown', closeMenu);
+                }
             };
-            document.addEventListener('click', closeMenu);
+            setTimeout(() => document.addEventListener('mousedown', closeMenu), 0);
         });
     }
 
@@ -800,6 +943,60 @@ function setupAnalysisTab() {
             titleContainer.appendChild(label);
             titleContainer.appendChild(typeLabel);
             
+            // Icons Container
+            const iconsContainer = document.createElement('div');
+            iconsContainer.style.display = 'flex';
+            iconsContainer.style.alignItems = 'center';
+            iconsContainer.style.opacity = '0'; // Hide by default
+            iconsContainer.style.transition = 'opacity 0.2s';
+
+            // Show icons on hover
+            th.onmouseenter = () => iconsContainer.style.opacity = '1';
+            th.onmouseleave = () => iconsContainer.style.opacity = '0';
+
+            // Copy Icon
+            const copyIcon = document.createElement('span');
+            copyIcon.innerHTML = '📋';
+            copyIcon.style.cursor = 'pointer';
+            copyIcon.style.marginLeft = '5px';
+            copyIcon.style.fontSize = '12px';
+            copyIcon.title = 'Copy column values';
+            
+            copyIcon.onclick = (e) => {
+                e.stopPropagation();
+                const values = filteredRatesData.map(row => {
+                    const val = row[col];
+                    return val === null || val === undefined ? '' : val;
+                }).join('\n');
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(values).then(() => {
+                        const originalHTML = copyIcon.innerHTML;
+                        copyIcon.innerHTML = '✅';
+                        setTimeout(() => copyIcon.innerHTML = originalHTML, 1000);
+                    }).catch(err => {
+                        console.error('Failed to copy: ', err);
+                        alert('Failed to copy values');
+                    });
+                } else {
+                    // Fallback
+                    const textArea = document.createElement("textarea");
+                    textArea.value = values;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        const originalHTML = copyIcon.innerHTML;
+                        copyIcon.innerHTML = '✅';
+                        setTimeout(() => copyIcon.innerHTML = originalHTML, 1000);
+                    } catch (err) {
+                        console.error('Fallback copy failed', err);
+                        alert('Failed to copy values');
+                    }
+                    document.body.removeChild(textArea);
+                }
+            };
+
             // Sort Icon (Click to sort)
             const sortIcon = document.createElement('span');
             sortIcon.id = `sort-icon-${col}`;
@@ -809,6 +1006,9 @@ function setupAnalysisTab() {
             sortIcon.style.fontSize = '12px';
             sortIcon.style.color = '#ccc';
             sortIcon.title = 'Click to sort';
+
+            iconsContainer.appendChild(copyIcon);
+            iconsContainer.appendChild(sortIcon);
 
             // Input (Hidden by default)
             const input = document.createElement('input');
@@ -847,7 +1047,7 @@ function setupAnalysisTab() {
 
             // Assemble
             headerDiv.appendChild(titleContainer);
-            headerDiv.appendChild(sortIcon);
+            headerDiv.appendChild(iconsContainer);
             th.appendChild(headerDiv);
             th.appendChild(input);
             theadTr.appendChild(th);
@@ -1331,6 +1531,7 @@ function setupAnalyticalDashboard() {
             { label: 'Gantt Chart', type: 'gantt', icon: '📅' },
             { label: 'Tree Map', type: 'treemap', icon: '🔲' },
             { label: 'Radar Chart', type: 'radar', icon: '🕸️' },
+            { label: 'Data Table', type: 'table', icon: '📋' },
             { label: 'Layout Container', type: 'container', icon: '📦' }
         ];
 
@@ -1377,6 +1578,67 @@ function setupAnalyticalDashboard() {
 
     // Add Theme Control Widget
     createDashboardThemeControl(dashboard);
+    
+    // Add Dashboard Controls (Remove All, etc.)
+    createDashboardControls(dashboard);
+}
+
+function createDashboardControls(container) {
+    const control = document.createElement('div');
+    control.className = 'dashboard-controls';
+    
+    Object.assign(control.style, {
+        position: 'absolute',
+        top: '10px',
+        left: '10px', // Position to the left to avoid overlap with theme control
+        zIndex: '1000',
+        display: 'flex',
+        gap: '10px'
+    });
+
+    const clearBtn = document.createElement('button');
+    clearBtn.id = 'dashboard-clear-btn';
+    clearBtn.innerHTML = '🗑️ Remove All';
+    clearBtn.title = 'Remove all plots from dashboard';
+    Object.assign(clearBtn.style, {
+        padding: '5px 10px',
+        backgroundColor: '#fff',
+        border: '2px solid rgba(0,0,0,0.2)',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '12px',
+        fontWeight: 'bold',
+        color: '#333',
+        boxShadow: '0 1px 5px rgba(0,0,0,0.4)',
+        height: '34px', // Match theme control height approx
+        display: 'none', // Initially hidden
+        alignItems: 'center',
+        gap: '5px'
+    });
+    
+    clearBtn.onmouseover = () => clearBtn.style.backgroundColor = '#f0f0f0';
+    clearBtn.onmouseout = () => clearBtn.style.backgroundColor = '#fff';
+
+    clearBtn.onclick = () => {
+        if(confirm('Are you sure you want to remove all plots?')) {
+            const charts = container.querySelectorAll('.dashboard-chart-container, .dashboard-layout-container');
+            charts.forEach(c => c.remove());
+            updateDashboardControlsVisibility();
+        }
+    };
+
+    control.appendChild(clearBtn);
+    container.appendChild(control);
+}
+
+// Helper to toggle visibility of dashboard controls
+function updateDashboardControlsVisibility() {
+    const btn = document.getElementById('dashboard-clear-btn');
+    const dashboard = document.getElementById('dashboard-content');
+    if (btn && dashboard) {
+        const hasCharts = dashboard.querySelectorAll('.dashboard-chart-container, .dashboard-layout-container').length > 0;
+        btn.style.display = hasCharts ? 'flex' : 'none';
+    }
 }
 
 function createDashboardThemeControl(container) {
@@ -1511,6 +1773,15 @@ function createDashboardChart(type, x, y, parentElement = null) {
     const dashboard = document.getElementById('dashboard-content');
     const isDark = document.body.classList.contains('dark-theme');
     
+    const colors = [
+        'rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)', 
+        'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)'
+    ];
+    const borders = [
+        'rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 
+        'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'
+    ];
+
     const container = document.createElement('div');
     container.className = 'dashboard-chart-container';
     
@@ -1568,13 +1839,87 @@ function createDashboardChart(type, x, y, parentElement = null) {
     
     const title = document.createElement('span');
     title.textContent = `${type.charAt(0).toUpperCase() + type.slice(1)} Chart`;
-    title.style.fontWeight = 'bold';
-    title.style.fontSize = '12px';
+    Object.assign(title.style, {
+        fontWeight: 'bold',
+        fontSize: '12px',
+        cursor: 'text',
+        padding: '2px 5px',
+        borderRadius: '3px',
+        border: '1px solid transparent',
+        minWidth: '50px',
+        outline: 'none'
+    });
+    title.contentEditable = true;
+    title.spellcheck = false;
+    title.title = "Click to rename";
+
+    // Prevent drag when editing title
+    title.onmousedown = (e) => e.stopPropagation();
+    
+    // Visual feedback on hover/focus
+    title.onmouseover = () => { if(document.activeElement !== title) title.style.border = '1px dashed #999'; };
+    title.onmouseout = () => { if(document.activeElement !== title) title.style.border = '1px solid transparent'; };
+    title.onfocus = () => { 
+        title.style.border = '1px solid #0075ff'; 
+        title.style.backgroundColor = isDark ? '#444' : '#fff';
+        title.style.color = isDark ? '#fff' : '#000';
+    };
+    title.onblur = () => { 
+        title.style.border = '1px solid transparent'; 
+        title.style.backgroundColor = 'transparent';
+        title.style.color = isDark ? '#eee' : '#333';
+    };
+    
+    // Blur on Enter
+    title.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            title.blur();
+        }
+    };
     
     const controls = document.createElement('div');
     controls.style.display = 'flex';
     controls.style.gap = '10px';
     controls.style.alignItems = 'center';
+
+    // Add Event Button for Gantt
+    if (type === 'gantt') {
+        const addBtn = document.createElement('span');
+        addBtn.innerHTML = '+';
+        Object.assign(addBtn.style, {
+            cursor: 'pointer',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            title: 'Add Event',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '20px',
+            height: '20px'
+        });
+        
+        addBtn.onclick = () => {
+            const name = prompt("Enter event name:", "New Task");
+            if (name) {
+                const start = parseFloat(prompt("Enter start time:", "0"));
+                const end = parseFloat(prompt("Enter end time:", "5"));
+                if (!isNaN(start) && !isNaN(end)) {
+                    const chart = Chart.getChart(canvas);
+                    if (chart) {
+                        chart.data.labels.push(name);
+                        chart.data.datasets[0].data.push([start, end]);
+                        const colorIndex = (chart.data.labels.length - 1) % colors.length;
+                        if (Array.isArray(chart.data.datasets[0].backgroundColor)) {
+                            chart.data.datasets[0].backgroundColor.push(colors[colorIndex]);
+                        }
+                        chart.update();
+                    }
+                }
+            }
+        };
+        controls.appendChild(addBtn);
+    }
 
     // Full View Button
     const fullBtn = document.createElement('span');
@@ -1640,6 +1985,373 @@ function createDashboardChart(type, x, y, parentElement = null) {
     canvasContainer.style.flex = '1';
     canvasContainer.style.width = '100%';
     canvasContainer.style.position = 'relative';
+    canvasContainer.style.minHeight = '0'; // Fix for flex shrinking
+
+    // Handle Data Table
+    if (type === 'table') {
+        canvasContainer.style.overflow = 'auto';
+        
+        // Startup Screen
+        const startupDiv = document.createElement('div');
+        Object.assign(startupDiv.style, {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            gap: '15px',
+            color: isDark ? '#eee' : '#333',
+            padding: '20px'
+        });
+
+        const msg = document.createElement('div');
+        msg.innerText = "Choose data source:";
+        msg.style.fontWeight = 'bold';
+        
+        const btnGroup = document.createElement('div');
+        btnGroup.style.display = 'flex';
+        btnGroup.style.gap = '10px';
+
+        const createBtn = document.createElement('button');
+        createBtn.innerText = 'Default Table';
+        Object.assign(createBtn.style, {
+            padding: '8px 15px',
+            cursor: 'pointer',
+            backgroundColor: isDark ? '#444' : '#f0f0f0',
+            border: '1px solid #888',
+            borderRadius: '4px',
+            color: isDark ? '#eee' : '#333'
+        });
+        
+        const uploadBtn = document.createElement('button');
+        uploadBtn.innerText = 'Import CSV/XLSX';
+        Object.assign(uploadBtn.style, {
+            padding: '8px 15px',
+            cursor: 'pointer',
+            backgroundColor: '#0075ff',
+            border: '1px solid #005bb5',
+            borderRadius: '4px',
+            color: 'white'
+        });
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.csv, .xlsx, .xls';
+        fileInput.style.display = 'none';
+
+        btnGroup.appendChild(createBtn);
+        btnGroup.appendChild(uploadBtn);
+        startupDiv.appendChild(msg);
+        startupDiv.appendChild(btnGroup);
+        canvasContainer.appendChild(startupDiv);
+
+        const initTable = (data = null) => {
+            startupDiv.remove();
+            
+            const table = document.createElement('table');
+            Object.assign(table.style, {
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '12px',
+                color: isDark ? '#eee' : '#333'
+            });
+            
+            if (data && data.length > 0) {
+                data.forEach((row, i) => {
+                    const tr = document.createElement('tr');
+                    row.forEach((val, j) => {
+                        const cell = i === 0 ? document.createElement('th') : document.createElement('td');
+                        cell.contentEditable = true;
+                        Object.assign(cell.style, {
+                            border: isDark ? '1px solid #555' : '1px solid #ddd',
+                            padding: '4px',
+                            minWidth: '50px',
+                            textAlign: 'center',
+                            backgroundColor: i === 0 ? (isDark ? '#444' : '#f9f9f9') : 'transparent'
+                        });
+                        cell.innerText = val;
+                        tr.appendChild(cell);
+                    });
+                    table.appendChild(tr);
+                });
+            } else {
+                for(let i=0; i<6; i++) {
+                    const tr = document.createElement('tr');
+                    for(let j=0; j<5; j++) {
+                        const cell = i === 0 ? document.createElement('th') : document.createElement('td');
+                        cell.contentEditable = true;
+                        Object.assign(cell.style, {
+                            border: isDark ? '1px solid #555' : '1px solid #ddd',
+                            padding: '4px',
+                            minWidth: '50px',
+                            textAlign: 'center',
+                            backgroundColor: i === 0 ? (isDark ? '#444' : '#f9f9f9') : 'transparent'
+                        });
+                        if (i === 0) cell.innerText = `Col ${j+1}`;
+                        tr.appendChild(cell);
+                    }
+                    table.appendChild(tr);
+                }
+            }
+            
+            canvasContainer.appendChild(table);
+            
+            // Paste Logic
+            table.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                const rows = text.trim().split(/\r\n|\n|\r/);
+                
+                const selection = window.getSelection();
+                if (!selection.rangeCount) return;
+                let target = selection.getRangeAt(0).startContainer;
+                if (target.nodeType === 3) target = target.parentNode;
+                
+                if (target.tagName !== 'TD' && target.tagName !== 'TH') return;
+                
+                const startRow = target.parentNode.rowIndex;
+                const startCol = target.cellIndex;
+                
+                rows.forEach((rowText, r) => {
+                    const cols = rowText.split('\t');
+                    let tr = table.rows[startRow + r];
+                    if (!tr) {
+                        tr = table.insertRow();
+                        for(let k=0; k<table.rows[0].cells.length; k++) {
+                            const td = document.createElement('td');
+                            td.contentEditable = true;
+                            Object.assign(td.style, {
+                                border: isDark ? '1px solid #555' : '1px solid #ddd',
+                                padding: '4px',
+                                minWidth: '50px',
+                                textAlign: 'center'
+                            });
+                            tr.appendChild(td);
+                        }
+                    }
+                    
+                    cols.forEach((val, c) => {
+                        let cell = tr.cells[startCol + c];
+                        if (!cell) {
+                             const td = document.createElement('td');
+                            td.contentEditable = true;
+                            Object.assign(td.style, {
+                                border: isDark ? '1px solid #555' : '1px solid #ddd',
+                                padding: '4px',
+                                minWidth: '50px',
+                                textAlign: 'center'
+                            });
+                            tr.appendChild(td);
+                            cell = td;
+                        }
+                        cell.innerText = val;
+                    });
+                });
+            });
+
+            // Table Context Menu (Row/Col Operations)
+            table.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                let target = e.target;
+                if (target.nodeType === 3) target = target.parentNode;
+                if (target.tagName !== 'TD' && target.tagName !== 'TH') return;
+
+                const rowIndex = target.parentNode.rowIndex;
+                const colIndex = target.cellIndex;
+
+                const existingMenu = document.getElementById('table-context-menu');
+                if (existingMenu) existingMenu.remove();
+
+                const menu = document.createElement('div');
+                menu.id = 'table-context-menu';
+                Object.assign(menu.style, {
+                    position: 'fixed',
+                    left: `${e.clientX}px`,
+                    top: `${e.clientY}px`,
+                    backgroundColor: isDark ? '#333' : 'white',
+                    border: isDark ? '1px solid #555' : '1px solid #ccc',
+                    boxShadow: '2px 2px 5px rgba(0,0,0,0.2)',
+                    borderRadius: '4px',
+                    padding: '5px 0',
+                    zIndex: '10002',
+                    minWidth: '150px',
+                    color: isDark ? '#eee' : '#333',
+                    fontFamily: 'Arial, sans-serif',
+                    fontSize: '13px'
+                });
+
+                const actions = [
+                    { label: 'Insert Row Above', action: () => insertRow(rowIndex) },
+                    { label: 'Insert Row Below', action: () => insertRow(rowIndex + 1) },
+                    { label: 'Delete Row', action: () => deleteRow(rowIndex) },
+                    { type: 'separator' },
+                    { label: 'Insert Column Left', action: () => insertCol(colIndex) },
+                    { label: 'Insert Column Right', action: () => insertCol(colIndex + 1) },
+                    { label: 'Delete Column', action: () => deleteCol(colIndex) },
+                    { type: 'separator' },
+                    { label: 'Download CSV', action: () => downloadCSV() }
+                ];
+
+                actions.forEach(opt => {
+                    if (opt.type === 'separator') {
+                        const sep = document.createElement('div');
+                        sep.style.borderTop = isDark ? '1px solid #555' : '1px solid #eee';
+                        sep.style.margin = '5px 0';
+                        menu.appendChild(sep);
+                        return;
+                    }
+
+                    const item = document.createElement('div');
+                    item.innerText = opt.label;
+                    Object.assign(item.style, {
+                        padding: '5px 15px',
+                        cursor: 'pointer'
+                    });
+                    
+                    item.onmouseover = () => item.style.backgroundColor = isDark ? '#444' : '#f0f0f0';
+                    item.onmouseout = () => item.style.backgroundColor = 'transparent';
+                    
+                    item.onclick = () => {
+                        opt.action();
+                        menu.remove();
+                    };
+                    menu.appendChild(item);
+                });
+
+                document.body.appendChild(menu);
+
+                const closeMenu = () => {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                };
+                setTimeout(() => document.addEventListener('click', closeMenu), 0);
+
+                function insertRow(index) {
+                    const newRow = table.insertRow(index);
+                    const colCount = table.rows[0].cells.length;
+                    for(let i=0; i<colCount; i++) {
+                        const cell = newRow.insertCell(i);
+                        cell.contentEditable = true;
+                        Object.assign(cell.style, {
+                            border: isDark ? '1px solid #555' : '1px solid #ddd',
+                            padding: '4px',
+                            minWidth: '50px',
+                            textAlign: 'center'
+                        });
+                    }
+                }
+
+                function deleteRow(index) {
+                    if (table.rows.length > 1) {
+                        table.deleteRow(index);
+                    }
+                }
+
+                function insertCol(index) {
+                    for(let i=0; i<table.rows.length; i++) {
+                        const row = table.rows[i];
+                        const cell = row.insertCell(index);
+                        cell.contentEditable = true;
+                        Object.assign(cell.style, {
+                            border: isDark ? '1px solid #555' : '1px solid #ddd',
+                            padding: '4px',
+                            minWidth: '50px',
+                            textAlign: 'center',
+                            backgroundColor: i === 0 ? (isDark ? '#444' : '#f9f9f9') : 'transparent'
+                        });
+                        if (i === 0) cell.innerText = `New Col`;
+                    }
+                }
+
+                function deleteCol(index) {
+                    if (table.rows[0].cells.length > 1) {
+                        for(let i=0; i<table.rows.length; i++) {
+                            table.rows[i].deleteCell(index);
+                        }
+                    }
+                }
+
+                function downloadCSV() {
+                    let csv = [];
+                    for (let i = 0; i < table.rows.length; i++) {
+                        let row = [], cols = table.rows[i].cells;
+                        for (let j = 0; j < cols.length; j++) {
+                            // Escape double quotes and wrap in quotes if needed
+                            let data = cols[j].innerText.replace(/"/g, '""');
+                            if (data.search(/("|,|\n)/g) >= 0) {
+                                data = '"' + data + '"';
+                            }
+                            row.push(data);
+                        }
+                        csv.push(row.join(","));
+                    }
+                    const csvString = csv.join("\n");
+                    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", "table_data.csv");
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            });
+        };
+
+        createBtn.onclick = () => initTable(null);
+        uploadBtn.onclick = () => fileInput.click();
+
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.name.endsWith('.csv')) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const text = evt.target.result;
+                    const rows = text.trim().split(/\r\n|\n|\r/).map(row => row.split(','));
+                    initTable(rows);
+                };
+                reader.readAsText(file);
+            } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                if (typeof XLSX === 'undefined') {
+                    const script = document.createElement('script');
+                    script.src = "https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js";
+                    script.onload = () => processExcel(file);
+                    script.onerror = () => {
+                        alert("Could not load Excel parser. Please use CSV.");
+                        initTable(null);
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    processExcel(file);
+                }
+            }
+        };
+
+        const processExcel = (file) => {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                initTable(json);
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        container.appendChild(canvasContainer);
+        if (parentElement) parentElement.appendChild(container);
+        else dashboard.appendChild(container);
+        
+        if (!parentElement) addDragLogic(header, container);
+        return;
+    }
 
     // Handle Tree Map separately (HTML implementation)
     if (type === 'treemap') {
@@ -1713,15 +2425,6 @@ function createDashboardChart(type, x, y, parentElement = null) {
             }
         }
     };
-
-    const colors = [
-        'rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(255, 206, 86, 0.6)', 
-        'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)'
-    ];
-    const borders = [
-        'rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 
-        'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'
-    ];
 
     if (type === 'bubble') {
         chartData = {
@@ -1839,13 +2542,100 @@ function createDashboardChart(type, x, y, parentElement = null) {
     }
 
     // Initialize Chart
-    new Chart(canvas, {
+    const chartInstance = new Chart(canvas, {
         type: chartType,
         data: chartData,
         options: chartOptions
     });
 
+    // Add ResizeObserver to handle container resizing
+    const resizeObserver = new ResizeObserver(() => {
+        chartInstance.resize();
+    });
+    resizeObserver.observe(container);
+
+    // Cleanup observer on close
+    closeBtn.onclick = () => {
+        resizeObserver.disconnect();
+        container.remove();
+        updateDashboardControlsVisibility();
+    };
+
     if (!parentElement) addDragLogic(header, container);
+
+    // Gantt Chart Interactivity (Drag to extend)
+    if (type === 'gantt') {
+        let dragging = false;
+        let dragIndex = -1;
+        
+        canvas.onmousedown = (e) => {
+            const chartInstance = Chart.getChart(canvas);
+            if (!chartInstance) return;
+            
+            const points = chartInstance.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+            if (points.length) {
+                const index = points[0].index;
+                const element = points[0].element;
+                
+                // Check if click is near the right edge (end time)
+                // element.x is the right edge pixel for horizontal bar
+                if (Math.abs(e.offsetX - element.x) < 15) { // 15px tolerance
+                    dragging = true;
+                    dragIndex = index;
+                    canvas.style.cursor = 'ew-resize';
+                }
+            }
+        };
+        
+        canvas.onmousemove = (e) => {
+            const chartInstance = Chart.getChart(canvas);
+            if (!chartInstance) return;
+
+            if (dragging && dragIndex !== -1) {
+                const newVal = chartInstance.scales.x.getValueForPixel(e.offsetX);
+                // Update end time. Data is [start, end]
+                const startVal = chartInstance.data.datasets[0].data[dragIndex][0];
+                if (newVal > startVal) {
+                    chartInstance.data.datasets[0].data[dragIndex][1] = newVal;
+                    chartInstance.update('none'); // Efficient update
+                }
+            } else {
+                // Hover effect
+                const points = chartInstance.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                if (points.length) {
+                    const element = points[0].element;
+                    if (Math.abs(e.offsetX - element.x) < 15) {
+                        canvas.style.cursor = 'ew-resize';
+                    } else {
+                        canvas.style.cursor = 'default';
+                    }
+                } else {
+                    canvas.style.cursor = 'default';
+                }
+            }
+        };
+        
+        canvas.onmouseup = () => {
+            if (dragging) {
+                dragging = false;
+                dragIndex = -1;
+                canvas.style.cursor = 'default';
+                const chartInstance = Chart.getChart(canvas);
+                if (chartInstance) chartInstance.update();
+            }
+        };
+        
+        canvas.onmouseout = () => {
+            if (dragging) {
+                dragging = false;
+                dragIndex = -1;
+                const chartInstance = Chart.getChart(canvas);
+                if (chartInstance) chartInstance.update();
+            }
+        };
+    }
+    
+    updateDashboardControlsVisibility();
 }
 
 function createLayoutContainer(x, y) {
@@ -1887,6 +2677,42 @@ function createLayoutContainer(x, y) {
     
     const title = document.createElement('span');
     title.textContent = '📦 Layout Container (Right-click inside to add plots)';
+    Object.assign(title.style, {
+        cursor: 'text',
+        padding: '2px 5px',
+        borderRadius: '3px',
+        border: '1px solid transparent',
+        minWidth: '50px',
+        outline: 'none'
+    });
+    title.contentEditable = true;
+    title.spellcheck = false;
+    title.title = "Click to rename";
+
+    // Prevent drag when editing title
+    title.onmousedown = (e) => e.stopPropagation();
+    
+    // Visual feedback on hover/focus
+    title.onmouseover = () => { if(document.activeElement !== title) title.style.border = '1px dashed #999'; };
+    title.onmouseout = () => { if(document.activeElement !== title) title.style.border = '1px solid transparent'; };
+    title.onfocus = () => { 
+        title.style.border = '1px solid #0075ff'; 
+        title.style.backgroundColor = isDark ? '#444' : '#fff';
+        title.style.color = isDark ? '#fff' : '#000';
+    };
+    title.onblur = () => { 
+        title.style.border = '1px solid transparent'; 
+        title.style.backgroundColor = 'transparent';
+        title.style.color = isDark ? '#eee' : '#333';
+    };
+    
+    // Blur on Enter
+    title.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            title.blur();
+        }
+    };
 
     const controls = document.createElement('div');
     controls.style.display = 'flex';
@@ -1941,7 +2767,10 @@ function createLayoutContainer(x, y) {
     closeBtn.innerHTML = '&times;';
     closeBtn.style.cursor = 'pointer';
     closeBtn.style.fontSize = '16px';
-    closeBtn.onclick = () => container.remove();
+    closeBtn.onclick = () => {
+        container.remove();
+        updateDashboardControlsVisibility();
+    };
     
     controls.appendChild(fullBtn);
     controls.appendChild(closeBtn);
@@ -2002,7 +2831,8 @@ function createLayoutContainer(x, y) {
             { label: 'Bubble Plot', type: 'bubble', icon: '🫧' },
             { label: 'Gantt Chart', type: 'gantt', icon: '📅' },
             { label: 'Tree Map', type: 'treemap', icon: '🔲' },
-            { label: 'Radar Chart', type: 'radar', icon: '🕸️' }
+            { label: 'Radar Chart', type: 'radar', icon: '🕸️' },
+            { label: 'Data Table', type: 'table', icon: '📋' }
         ];
 
         options.forEach(opt => {
@@ -2055,6 +2885,7 @@ function createLayoutContainer(x, y) {
     addResizeLogic(resizer, container);
     
     dashboard.appendChild(container);
+    updateDashboardControlsVisibility();
 }
 
 function addResizeLogic(resizer, container) {
