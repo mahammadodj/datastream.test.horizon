@@ -98,8 +98,42 @@ body {
 }
 
 .sidebar-hint {
-  margin-top: 12px;
+  font-size: 0.85em;
   color: #666;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+/* Dark Mode Support for Dashboard Buttons */
+.dashboard-action-btn {
+    padding: 5px 10px;
+    background-color: #fff;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    height: 34px;
+    display: none; /* Initially hidden */
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.dashboard-action-btn:hover {
+    background-color: #f0f0f0;
+}
+
+body.dark-theme .dashboard-action-btn {
+    background-color: #333;
+    color: #eee;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.dark-theme .dashboard-action-btn:hover {
+    background-color: #444;
 }
 
 .efs-col {
@@ -644,65 +678,158 @@ body.dark-theme .field-contours-layer {
     color: #ccc !important;
 }
 
-/* Chart Controls Theme Support */
-.axis-drawer-toggle, .axis-drawer-toggle-right {
-    background-color: #eee !important;
-    border: 1px solid #ccc !important;
-    color: #666 !important;
-    transition: all 0.2s ease;
+/* Dashboard Table Styles */
+.dashboard-table-selected {
+    background-color: rgba(0, 120, 215, 0.2) !important;
+    outline: 1px solid rgba(0, 120, 215, 0.5);
 }
 
-.dark-theme .axis-drawer-toggle, .dark-theme .axis-drawer-toggle-right {
-    background-color: #333 !important;
-    border-color: #555 !important;
-    color: #ccc !important;
+.dashboard-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
-.chart-header-btn {
-    background-color: rgba(0,0,0,0.05) !important;
-    border: 1px solid #ddd !important;
-    color: #666 !important;
-    transition: all 0.2s ease;
+.dashboard-table-title {
+    flex-grow: 1;
+    outline: none;
 }
 
-.dark-theme .chart-header-btn {
-    background-color: rgba(255,255,255,0.05) !important;
-    border-color: #555 !important;
-    color: #ccc !important;
+.dashboard-table-controls {
+    display: flex;
+    gap: 2px;
+    margin-left: 5px;
+    opacity: 0; /* Show on hover */
+    transition: opacity 0.2s;
 }
 
-.chart-header-btn:hover {
-    background-color: rgba(0,0,0,0.1) !important;
+th:hover .dashboard-table-controls {
+    opacity: 1;
 }
 
-.dark-theme .chart-header-btn:hover {
-    background-color: rgba(255,255,255,0.1) !important;
+.dashboard-table-btn {
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 3px;
+    font-size: 10px;
+    color: #666;
 }
 
-.chart-header-btn.active {
-    background-color: rgba(46, 204, 113, 0.1) !important;
-    border-color: #2ecc71 !important;
+.dashboard-table-btn:hover {
+    background-color: rgba(0,0,0,0.1);
+    color: #000;
 }
 
-.dark-theme .chart-header-btn.active {
-    background-color: rgba(46, 204, 113, 0.2) !important;
-    border-color: #2ecc71 !important; /* Keep green border */
+.dark-theme .dashboard-table-btn {
+    color: #aaa;
 }
 
-.chart-toolbar-btn {
-    color: #666 !important;
-    transition: color 0.2s ease;
+.dark-theme .dashboard-table-btn:hover {
+    background-color: rgba(255,255,255,0.1);
+    color: #fff;
 }
 
-.dark-theme .chart-toolbar-btn {
-    color: #ccc !important;
+.dashboard-filter-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    padding: 10px;
+    z-index: 100005;
+    border-radius: 4px;
+    min-width: 150px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
 }
 
-.chart-drag-handle {
-    color: #666 !important;
+.dark-theme .dashboard-filter-menu {
+    background: #333;
+    border-color: #555;
+    color: #eee;
 }
 
-.dark-theme .chart-drag-handle {
-    color: #ccc !important;
+.dashboard-filter-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 5px;
+    cursor: pointer;
 }
 
+.dashboard-filter-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    border-top: 1px solid #eee;
+    padding-top: 5px;
+}
+
+.dark-theme .dashboard-filter-actions {
+    border-top-color: #555;
+}
+
+/* Dark Mode for Leaflet Measure Control */
+body.dark-theme .leaflet-control-measure {
+    background: #333;
+    border: 1px solid #444;
+    color: #eee;
+}
+
+body.dark-theme .leaflet-control-measure .leaflet-control-measure-toggle,
+body.dark-theme .leaflet-control-measure .leaflet-control-measure-interaction {
+    background-color: #333;
+    color: #eee;
+}
+
+body.dark-theme .leaflet-control-measure a.leaflet-control-measure-toggle:hover {
+    background-color: #444;
+}
+
+/* Ensure Time Slider text is visible in Dark Mode */
+body.dark-theme .time-slider-title,
+body.dark-theme .time-slider-container .time-slider-label {
+    color: #eee !important;
+}
+
+body.dark-theme .time-slider-track {
+    background: #555 !important;
+}
+
+/* Box Selection Control Styles */
+.leaflet-control-box-select {
+    background-color: white;
+    color: #333;
+    border-radius: 4px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+    transition: background-color 0.2s, color 0.2s;
+    text-decoration: none !important;
+}
+
+.leaflet-control-box-select:hover {
+    background-color: #f4f4f4;
+    color: #000;
+}
+
+.leaflet-control-box-select.active {
+    background-color: #ccc;
+    color: #000;
+}
+
+/* Dark Mode for Box Selection Control */
+body.dark-theme .leaflet-control-box-select {
+    background-color: #333;
+    color: #eee;
+    border: 1px solid #444;
+}
+
+body.dark-theme .leaflet-control-box-select:hover {
+    background-color: #444;
+    color: #fff;
+}
+
+body.dark-theme .leaflet-control-box-select.active {
+    background-color: #555;
+    color: #fff;
+    border-color: #666;
+}

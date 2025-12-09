@@ -22,21 +22,34 @@
   <script src="https://unpkg.com/leaflet-search@3.0.2/dist/leaflet-search.min.js" integrity="sha384-JI+HrtbrAPI2WVM8g/f/KIjqz75GFxrPVIyNNG5bDJEeNFmN+PgvMvc7zfFwkQRg" crossorigin="anonymous" defer></script>
   <script src="https://cdn.jsdelivr.net/gh/ljagis/leaflet-measure@2.1.7/dist/leaflet-measure.min.js" integrity="sha384-/iJukUJEolULZCN2+jrgskyKOLCBltz4OE3Y1FbY/pp0Ud8j4cgP0Xx4XxlnHJCD" crossorigin="anonymous" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
 </head>
 <body>
   <!-- Navigation Tabs -->
   <ul class="nav nav-tabs" id="mainTabs" role="tablist" style="background-color: #f8f9fa; padding-top: 5px; padding-left: 10px;">
     <li class="nav-item" role="presentation">
+      <button class="nav-link" id="lineage-tab" data-bs-toggle="tab" data-bs-target="#lineage-content" type="button" role="tab" aria-controls="lineage-content" aria-selected="false">Data Lineage</button>
+    </li>
+    <li class="nav-item" role="presentation">
       <button class="nav-link active" id="map-tab" data-bs-toggle="tab" data-bs-target="#map-content" type="button" role="tab" aria-controls="map-content" aria-selected="true">Map Analysis</button>
     </li>
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-content" type="button" role="tab" aria-controls="dashboard-content" aria-selected="false">Analytical Dashboard</button>
     </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="add-global-tab" type="button" aria-label="Add Tab" style="font-weight: bold;">+</button>
+    </li>
   </ul>
 
   <!-- Tab Content -->
   <div class="tab-content" id="mainTabsContent" style="height: calc(100vh - 42px);">
+    <!-- Data Lineage Tab -->
+    <div class="tab-pane fade" id="lineage-content" role="tabpanel" aria-labelledby="lineage-tab" style="height: 100%; padding: 20px;">
+      <div id="dataset-tab" style="height: 100%; width: 100%;"></div>
+    </div>
+
     <!-- Map Analysis Tab -->
     <div class="tab-pane fade show active" id="map-content" role="tabpanel" aria-labelledby="map-tab" style="height: 100%; position: relative;">
       <div class="onemap-map" id="onemap-map"></div>
@@ -77,5 +90,6 @@
   </div>
   <script src="/onemap/View.Control.js" defer></script>
   <script src="/onemap/Marker.Settings.js" defer></script>
+  <script src="/onemap/DatasetLineage.js" defer></script>
 </body>
 </html>

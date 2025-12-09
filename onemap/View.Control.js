@@ -175,6 +175,125 @@ L.ParticleLayer = L.Layer.extend({
     }
 });
 
+// NEW: Box Selection Control
+L.Control.BoxSelect = L.Control.extend({
+    options: {
+        position: 'topleft'
+    },
+
+    onAdd: function(map) {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        const button = L.DomUtil.create('a', 'leaflet-control-box-select', container);
+        button.innerHTML = '⛝';
+        button.href = '#';
+        button.title = 'Select Area (Box Selection)';
+        button.style.fontSize = '18px';
+        button.style.display = 'flex';
+        button.style.alignItems = 'center';
+        button.style.justifyContent = 'center';
+        button.style.cursor = 'pointer';
+        button.style.width = '30px';
+        button.style.height = '30px';
+        // Background color handled by CSS
+
+        L.DomEvent.on(button, 'click', function(e) {
+            L.DomEvent.stop(e);
+            this._toggleSelectionMode(map, button);
+        }, this);
+
+        return container;
+    },
+
+    _toggleSelectionMode: function(map, button) {
+        if (this._enabled) {
+            this._disable(map, button);
+        } else {
+            this._enable(map, button);
+        }
+    },
+
+    _enable: function(map, button) {
+        this._enabled = true;
+        L.DomUtil.addClass(button, 'active');
+        map.dragging.disable();
+        map.getContainer().style.cursor = 'crosshair';
+        
+        map.on('mousedown', this._onMouseDown, this);
+        map.on('mouseup', this._onMouseUp, this);
+        map.on('mousemove', this._onMouseMove, this);
+    },
+
+    _disable: function(map, button) {
+        this._enabled = false;
+        L.DomUtil.removeClass(button, 'active');
+        map.dragging.enable();
+        map.getContainer().style.cursor = '';
+        
+        map.off('mousedown', this._onMouseDown, this);
+        map.off('mouseup', this._onMouseUp, this);
+        map.off('mousemove', this._onMouseMove, this);
+        
+        if (this._box) {
+            map.removeLayer(this._box);
+            this._box = null;
+        }
+    },
+
+    _onMouseDown: function(e) {
+        this._startLatLng = e.latlng;
+        this._box = L.rectangle([this._startLatLng, this._startLatLng], {color: "#ff7800", weight: 1}).addTo(map);
+    },
+
+    _onMouseMove: function(e) {
+        if (!this._box) return;
+        this._box.setBounds([this._startLatLng, e.latlng]);
+    },
+
+    _onMouseUp: function(e) {
+        if (!this._box) return;
+        const bounds = this._box.getBounds();
+        this._selectWellsInBounds(bounds);
+        this._disable(map, this._container.querySelector('a'));
+    },
+
+    _selectWellsInBounds: function(bounds) {
+        // Reset previous selection
+        if (window.applyMarkerColorScheme) window.applyMarkerColorScheme();
+
+        const selectedWells = [];
+        map.eachLayer(layer => {
+            if ((layer instanceof L.Marker || layer instanceof L.CircleMarker) && layer.options.__well_id) {
+                if (bounds.contains(layer.getLatLng())) {
+                    selectedWells.push(layer.options.__well_id);
+                    // Highlight
+                    if (layer.setStyle) {
+                        layer.setStyle({ color: '#00FF00', fillColor: '#00FF00' });
+                    }
+                }
+            }
+        });
+        
+        if (selectedWells.length > 0) {
+             // Show toast or summary
+             const toast = document.createElement('div');
+             toast.textContent = `Selected ${selectedWells.length} wells`;
+             Object.assign(toast.style, {
+                 position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+                 backgroundColor: '#333', color: 'white', padding: '10px 20px', borderRadius: '5px',
+                 zIndex: '10000', opacity: '0', transition: 'opacity 0.3s'
+             });
+             document.body.appendChild(toast);
+             requestAnimationFrame(() => toast.style.opacity = '1');
+             setTimeout(() => {
+                 toast.style.opacity = '0';
+                 setTimeout(() => toast.remove(), 300);
+             }, 3000);
+        }
+    }
+});
+
+map.addControl(new L.Control.BoxSelect());
+
 // Define base maps
 const basemaps = {
     "Standard": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -247,30 +366,46 @@ detailsContainer.id = 'onemap-sidebar-details';
 detailsContainer.innerHTML = `
     <div style="padding: 0 0 20px 24px; height: 100%; display: flex; flex-direction: column; overflow-y: auto;">
         <h2 id="details-well-name" style="margin-top: 2px;">Well Details</h2>
-        <div id="details-controls" style="margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap;"></div>
-        <div id="details-chart-container" class="chart-dashboard-frame" style="position: relative; height: 300px; width: 100%; flex-shrink: 0; margin-bottom: 20px;">
-            <div id="chart-placeholder" class="chart-placeholder-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">Select a well for rate analysis</div>
-            <canvas id="productionChart"></canvas>
-            <button id="details-time-btn" class="chart-action-btn" style="position: absolute; bottom: 4px; left: 4px; z-index: 10; font-size: 11px; padding: 2px 6px;">Time ⚙</button>
+        
+        <!-- Tab Navigation -->
+        <div id="details-dashboard-tabs" style="display: flex; gap: 2px; border-bottom: 1px solid #ccc; margin-bottom: 10px; flex-shrink: 0;">
+            <div class="dashboard-tab active" data-tab="main" onclick="switchDashboardTab('main')" style="padding: 5px 10px; cursor: pointer; border: 1px solid #ccc; border-bottom: none; border-radius: 4px 4px 0 0; background: #fff; font-size: 12px; font-weight: bold;">Main</div>
+            <div id="add-dashboard-tab-btn" onclick="addDashboardTab()" style="padding: 5px 10px; cursor: pointer; font-weight: bold; font-size: 14px; color: #666;">+</div>
         </div>
 
-        <div id="extra-charts-area" style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px;"></div>
+        <!-- Tab Content Container -->
+        <div id="details-tab-content-container" style="flex: 1; display: flex; flex-direction: column;">
+            
+            <!-- Main Tab Content -->
+            <div id="dashboard-tab-main" class="dashboard-tab-pane" style="display: flex; flex-direction: column; flex: 1;">
+                <div id="details-controls" style="margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap;"></div>
+                <div id="details-chart-container" class="chart-dashboard-frame" style="position: relative; height: 300px; width: 100%; flex-shrink: 0; margin-bottom: 20px;">
+                    <div id="chart-placeholder" class="chart-placeholder-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">Select a well for rate analysis</div>
+                    <canvas id="productionChart"></canvas>
+                    <button id="details-time-btn" class="chart-action-btn" style="position: absolute; bottom: 4px; left: 4px; z-index: 10; font-size: 11px; padding: 2px 6px;">Time ⚙</button>
+                </div>
 
-        <div id="add-plot-btn" style="
-            border: 3px dashed #e0e0e0; 
-            border-radius: 4px; 
-            height: 300px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            cursor: pointer; 
-            color: #999; 
-            font-size: 14px;
-            flex-shrink: 0;
-            background: #fafafa;
-            transition: all 0.2s;
-        ">
-            Click to add plot
+                <div id="extra-charts-area" class="extra-charts-area" style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px;"></div>
+
+                <div id="add-plot-btn" class="add-plot-btn" style="
+                    border: 3px dashed #e0e0e0; 
+                    border-radius: 4px; 
+                    height: 100px; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    cursor: pointer; 
+                    color: #999; 
+                    font-size: 14px;
+                    flex-shrink: 0;
+                    background: #fafafa;
+                    transition: all 0.2s;
+                    margin-bottom: 20px;
+                ">
+                    Click to add plot
+                </div>
+            </div>
+            
         </div>
 
         <div id="details-loading" style="display:none; text-align: center; padding: 20px;">Loading data...</div>
@@ -284,8 +419,195 @@ if (mapContent) {
     document.body.appendChild(detailsContainer);
 }
 
+// NEW: Tab Logic
+window._efsActiveDashboardTab = 'main';
+
+window.switchDashboardTab = function(tabId) {
+    // Update Tab UI
+    document.querySelectorAll('.dashboard-tab').forEach(el => {
+        el.classList.remove('active');
+        el.style.background = '#f0f0f0';
+        el.style.borderBottom = '1px solid #ccc';
+        if (el.dataset.tab === tabId) {
+            el.classList.add('active');
+            el.style.background = '#fff';
+            el.style.borderBottom = 'none';
+        }
+    });
+
+    // Update Content Visibility
+    document.querySelectorAll('.dashboard-tab-pane').forEach(el => {
+        el.style.display = 'none';
+        if (el.id === `dashboard-tab-${tabId}`) {
+            el.style.display = 'flex';
+        }
+    });
+    
+    window._efsActiveDashboardTab = tabId;
+};
+
+window.addDashboardTab = function(id, name, color) {
+    const tabId = id || 'tab-' + Date.now();
+    // If name is provided, use it. Otherwise generate one.
+    // Note: querySelectorAll includes the new tab if we are not careful, but here we are creating it.
+    // We should count existing tabs excluding the "+" button.
+    const count = document.querySelectorAll('.dashboard-tab').length; // Main is 1
+    const tabName = name || 'Dashboard ' + count; // Main is Dashboard 0 effectively? No, Main is Main.
+    
+    // Check if tab already exists
+    if (document.querySelector(`.dashboard-tab[data-tab="${tabId}"]`)) return;
+
+    // Create Tab
+    const tab = document.createElement('div');
+    tab.className = 'dashboard-tab';
+    tab.dataset.tab = tabId;
+    tab.draggable = true;
+
+    // Style
+    const bgColor = color || '#f0f0f0';
+    tab.style.cssText = `padding: 5px 10px; cursor: pointer; border: 1px solid #ccc; border-bottom: 1px solid #ccc; border-radius: 4px 4px 0 0; background: ${bgColor}; font-size: 12px; margin-right: 2px; display: flex; align-items: center; gap: 5px;`;
+    
+    // Drag & Drop
+    tab.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', tabId);
+        e.dataTransfer.effectAllowed = 'move';
+        tab.style.opacity = '0.5';
+    });
+    
+    tab.addEventListener('dragend', () => {
+        tab.style.opacity = '1';
+    });
+    
+    tab.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    });
+    
+    tab.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const draggedId = e.dataTransfer.getData('text/plain');
+        const draggedTab = document.querySelector(`.dashboard-tab[data-tab="${draggedId}"]`);
+        if (draggedTab && draggedTab !== tab) {
+            const parent = tab.parentNode;
+            const rect = tab.getBoundingClientRect();
+            const midX = rect.left + rect.width / 2;
+            if (e.clientX < midX) {
+                parent.insertBefore(draggedTab, tab);
+            } else {
+                parent.insertBefore(draggedTab, tab.nextSibling);
+            }
+            saveExtraChartsState();
+        }
+    });
+
+    // Color Picker (Right Click)
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.style.display = 'none';
+    colorInput.value = bgColor === '#f0f0f0' ? '#ffffff' : bgColor;
+    colorInput.onchange = (e) => {
+        tab.style.backgroundColor = e.target.value;
+        saveExtraChartsState();
+    };
+    tab.appendChild(colorInput);
+    
+    tab.oncontextmenu = (e) => {
+        e.preventDefault();
+        colorInput.click();
+    };
+
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = tabName;
+    titleSpan.title = "Double click to rename, Right click to change color";
+    
+    // Rename functionality
+    titleSpan.ondblclick = (e) => {
+        e.stopPropagation();
+        const currentName = titleSpan.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.style.cssText = "width: 80px; font-size: 12px; padding: 2px; border: 1px solid #999; border-radius: 2px;";
+        
+        const saveName = () => {
+            const newName = input.value.trim() || currentName;
+            titleSpan.textContent = newName;
+            saveExtraChartsState(); // Persist change
+        };
+
+        input.onblur = saveName;
+        input.onkeydown = (ev) => {
+            if (ev.key === 'Enter') {
+                input.blur();
+            }
+        };
+        
+        titleSpan.textContent = '';
+        titleSpan.appendChild(input);
+        input.focus();
+    };
+
+    tab.appendChild(titleSpan);
+
+    // Add Delete Button
+    const deleteBtn = document.createElement('span');
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.style.cssText = "cursor: pointer; color: #999; font-weight: bold; font-size: 14px; line-height: 1;";
+    deleteBtn.onmouseover = () => deleteBtn.style.color = 'red';
+    deleteBtn.onmouseout = () => deleteBtn.style.color = '#999';
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation(); // Prevent switching to the tab being deleted
+        deleteDashboardTab(tabId);
+    };
+    tab.appendChild(deleteBtn);
+
+    tab.onclick = () => switchDashboardTab(tabId);
+    
+    const addBtn = document.getElementById('add-dashboard-tab-btn');
+    addBtn.parentNode.insertBefore(tab, addBtn);
+    
+    // Create Content Pane
+    const content = document.createElement('div');
+    content.id = `dashboard-tab-${tabId}`;
+    content.className = 'dashboard-tab-pane';
+    content.style.cssText = "display: none; flex: 1; flex-direction: column;";
+    
+    // Add "Add Plot" button to the new pane
+    content.innerHTML = `
+        <div class="extra-charts-area" style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px;"></div>
+        <div class="add-plot-btn" onclick="showAddPlotDialog('${tabId}')" style="
+            border: 3px dashed #e0e0e0; 
+            border-radius: 4px; 
+            height: 100px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer; 
+            color: #999; 
+            font-size: 14px;
+            flex-shrink: 0;
+            background: #fafafa;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        ">
+            Click to add plot
+        </div>
+    `;
+    
+    document.getElementById('details-tab-content-container').appendChild(content);
+    
+    switchDashboardTab(tabId);
+    
+    // Save state
+    if (typeof saveExtraChartsState === 'function') {
+        saveExtraChartsState();
+    }
+};
+
 // NEW: Add Plot Button Interactions
 const addPlotBtn = document.getElementById('add-plot-btn');
+if (addPlotBtn) addPlotBtn.onclick = () => showAddPlotDialog('main');
+
 addPlotBtn.addEventListener('mouseover', () => {
     const isDark = document.body.classList.contains('dark-theme');
     addPlotBtn.style.borderColor = isDark ? '#666' : '#ccc';
@@ -780,6 +1102,33 @@ function setupAnalysisTab() {
                 };
                 return item;
             };
+
+            // Check for active sort or filter
+            const hasSort = currentSort.col;
+            const hasFilter = Object.values(activeFilters).some(v => v && v.trim() !== '');
+
+            if (hasSort || hasFilter) {
+                if (hasSort) {
+                    tableMenu.appendChild(createItem('Clear Sorting', '✕', () => {
+                        currentSort = { col: null, dir: null };
+                        applyFiltersAndSort();
+                    }));
+                }
+                if (hasFilter) {
+                    tableMenu.appendChild(createItem('Clear Filters', '✕', () => {
+                        activeFilters = {};
+                        // Clear inputs
+                        const inputs = document.querySelectorAll('#rates-table-header input');
+                        inputs.forEach(input => input.value = '');
+                        applyFiltersAndSort();
+                    }));
+                }
+                // Add separator
+                const sep = document.createElement('div');
+                sep.style.borderTop = isDark ? '1px solid #555' : '1px solid #eee';
+                sep.style.margin = '5px 0';
+                tableMenu.appendChild(sep);
+            }
 
             tableMenu.appendChild(createItem('Add new formula', 'ƒ', () => {
                 if (window.showFormulaModal) window.showFormulaModal();
@@ -1485,6 +1834,13 @@ function setupAnalyticalDashboard() {
     const dashboard = document.getElementById('dashboard-content');
     if (!dashboard) return;
 
+    // Listen for Lineage Updates
+    window.lineageData = window.lineageData || { tables: [], links: [] };
+    window.addEventListener('efs:lineage-updated', (e) => {
+        window.lineageData = e.detail;
+        console.log("Lineage Data Updated:", window.lineageData);
+    });
+
     // Make dashboard a relative container for absolute positioning of charts
     dashboard.style.position = 'relative';
     dashboard.style.overflow = 'auto';
@@ -1496,7 +1852,10 @@ function setupAnalyticalDashboard() {
         
         if (window.closeAllChartMenus) window.closeAllChartMenus();
 
-        // Remove existing menu
+        // Remove existing menus
+        const tableMenu = document.getElementById('table-context-menu');
+        if (tableMenu) tableMenu.remove();
+
         const existingMenu = document.getElementById('dashboard-context-menu');
         if (existingMenu) existingMenu.remove();
 
@@ -1584,6 +1943,10 @@ function setupAnalyticalDashboard() {
 }
 
 function createDashboardControls(container) {
+    // Remove existing controls to prevent duplicates
+    const existing = container.querySelector('.dashboard-controls');
+    if (existing) existing.remove();
+
     const control = document.createElement('div');
     control.className = 'dashboard-controls';
     
@@ -1598,27 +1961,11 @@ function createDashboardControls(container) {
 
     const clearBtn = document.createElement('button');
     clearBtn.id = 'dashboard-clear-btn';
+    clearBtn.className = 'dashboard-action-btn'; // Use CSS class
     clearBtn.innerHTML = '🗑️ Remove All';
     clearBtn.title = 'Remove all plots from dashboard';
-    Object.assign(clearBtn.style, {
-        padding: '5px 10px',
-        backgroundColor: '#fff',
-        border: '2px solid rgba(0,0,0,0.2)',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '12px',
-        fontWeight: 'bold',
-        color: '#333',
-        boxShadow: '0 1px 5px rgba(0,0,0,0.4)',
-        height: '34px', // Match theme control height approx
-        display: 'none', // Initially hidden
-        alignItems: 'center',
-        gap: '5px'
-    });
+    // Removed inline styles that are now in CSS
     
-    clearBtn.onmouseover = () => clearBtn.style.backgroundColor = '#f0f0f0';
-    clearBtn.onmouseout = () => clearBtn.style.backgroundColor = '#fff';
-
     clearBtn.onclick = () => {
         if(confirm('Are you sure you want to remove all plots?')) {
             const charts = container.querySelectorAll('.dashboard-chart-container, .dashboard-layout-container');
@@ -1627,18 +1974,83 @@ function createDashboardControls(container) {
         }
     };
 
+    // NEW: Align All Button
+    const alignBtn = document.createElement('button');
+    alignBtn.id = 'dashboard-align-btn';
+    alignBtn.className = 'dashboard-action-btn'; // Use CSS class
+    alignBtn.innerHTML = '⊞ Align All';
+    alignBtn.title = 'Align all charts side by side';
+    // Removed inline styles that are now in CSS
+
+    alignBtn.onclick = () => alignDashboardCharts();
+
+    control.appendChild(alignBtn);
     control.appendChild(clearBtn);
     container.appendChild(control);
+    
+    // Ensure dashboard has relative positioning for absolute children
+    if (getComputedStyle(container).position === 'static') {
+        container.style.position = 'relative';
+    }
+
+    // Initial check
+    updateDashboardControlsVisibility();
 }
 
 // Helper to toggle visibility of dashboard controls
 function updateDashboardControlsVisibility() {
-    const btn = document.getElementById('dashboard-clear-btn');
+    const clearBtn = document.getElementById('dashboard-clear-btn');
+    const alignBtn = document.getElementById('dashboard-align-btn');
     const dashboard = document.getElementById('dashboard-content');
-    if (btn && dashboard) {
-        const hasCharts = dashboard.querySelectorAll('.dashboard-chart-container, .dashboard-layout-container').length > 0;
-        btn.style.display = hasCharts ? 'flex' : 'none';
+    
+    if (dashboard) {
+        const charts = dashboard.querySelectorAll('.dashboard-chart-container, .dashboard-layout-container');
+        const count = charts.length;
+        
+        if (clearBtn) clearBtn.style.display = count > 0 ? 'flex' : 'none';
+        if (alignBtn) alignBtn.style.display = count > 1 ? 'flex' : 'none';
     }
+}
+
+// NEW: Align charts function
+function alignDashboardCharts() {
+    const dashboard = document.getElementById('dashboard-content');
+    if (!dashboard) return;
+    
+    const charts = dashboard.querySelectorAll('.dashboard-chart-container, .dashboard-layout-container');
+    if (charts.length === 0) return;
+
+    const padding = 20;
+    const gap = 20;
+    const dashboardWidth = dashboard.clientWidth;
+    const topOffset = 60; // Space for controls
+
+    let currentX = padding;
+    let currentY = topOffset;
+    let maxHeightInRow = 0;
+
+    charts.forEach(chart => {
+        // Ensure absolute positioning
+        chart.style.position = 'absolute';
+        
+        // Get dimensions (default to 400x300 if not set)
+        let w = chart.offsetWidth || 400;
+        let h = chart.offsetHeight || 300;
+
+        // Check if it fits in current row
+        if (currentX + w + gap > dashboardWidth) {
+            // Move to next row
+            currentX = padding;
+            currentY += maxHeightInRow + gap;
+            maxHeightInRow = 0;
+        }
+
+        chart.style.left = currentX + 'px';
+        chart.style.top = currentY + 'px';
+
+        currentX += w + gap;
+        if (h > maxHeightInRow) maxHeightInRow = h;
+    });
 }
 
 function createDashboardThemeControl(container) {
@@ -1973,6 +2385,21 @@ function createDashboardChart(type, x, y, parentElement = null) {
     closeBtn.style.fontSize = '16px';
     closeBtn.onclick = () => container.remove();
     
+    // Add Settings Button for Scatter/Line/Bar/Pie Plot
+    if (type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') {
+        const settingsBtn = document.createElement('span');
+        settingsBtn.innerHTML = '⚙️';
+        settingsBtn.style.cursor = 'pointer';
+        settingsBtn.style.fontSize = '14px';
+        settingsBtn.title = 'Configure Chart';
+        settingsBtn.style.marginRight = '5px';
+        settingsBtn.onclick = () => {
+            const chart = Chart.getChart(canvas);
+            if (chart) openChartSettings(chart);
+        };
+        controls.appendChild(settingsBtn);
+    }
+
     controls.appendChild(fullBtn);
     controls.appendChild(closeBtn);
 
@@ -2041,6 +2468,55 @@ function createDashboardChart(type, x, y, parentElement = null) {
 
         btnGroup.appendChild(createBtn);
         btnGroup.appendChild(uploadBtn);
+
+        // NEW: Lineage Button
+        if (window.lineageData && window.lineageData.tables && window.lineageData.tables.length > 0) {
+            const lineageBtn = document.createElement('button');
+            lineageBtn.innerText = 'From Lineage';
+            Object.assign(lineageBtn.style, {
+                padding: '8px 15px',
+                cursor: 'pointer',
+                backgroundColor: '#28a745',
+                border: '1px solid #218838',
+                borderRadius: '4px',
+                color: 'white'
+            });
+            
+            lineageBtn.onclick = () => {
+                // Show simple list selection
+                msg.innerText = "Select a dataset:";
+                btnGroup.innerHTML = '';
+                btnGroup.style.flexDirection = 'column';
+                btnGroup.style.width = '100%';
+                btnGroup.style.maxHeight = '150px';
+                btnGroup.style.overflowY = 'auto';
+
+                window.lineageData.tables.forEach(table => {
+                    const item = document.createElement('div');
+                    item.innerText = table.name;
+                    Object.assign(item.style, {
+                        padding: '8px',
+                        border: '1px solid #ddd',
+                        marginBottom: '5px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        backgroundColor: isDark ? '#444' : 'white'
+                    });
+                    item.onclick = () => {
+                        if (!table.data || table.data.length === 0) {
+                            alert("Selected table has no data.");
+                            return;
+                        }
+                        const headers = table.columns.map(c => c.name);
+                        const rows = table.data.map(row => headers.map(h => row[h]));
+                        initTable([headers, ...rows]);
+                    };
+                    btnGroup.appendChild(item);
+                });
+            };
+            btnGroup.appendChild(lineageBtn);
+        }
+
         startupDiv.appendChild(msg);
         startupDiv.appendChild(btnGroup);
         canvasContainer.appendChild(startupDiv);
@@ -2048,6 +2524,28 @@ function createDashboardChart(type, x, y, parentElement = null) {
         const initTable = (data = null) => {
             startupDiv.remove();
             
+            // Data Model
+            let tableData = [];
+            let headers = [];
+            
+            // State
+            let currentSort = { colIndex: -1, dir: 'none' };
+            let activeFilters = {}; // colIndex -> value
+            let filterOpen = {}; // colIndex -> boolean
+
+            // Initialize Data
+            if (data && data.length > 0) {
+                headers = data[0].map(String);
+                tableData = data.slice(1);
+            } else {
+                for(let j=0; j<5; j++) headers.push(`Col ${j+1}`);
+                for(let i=0; i<5; i++) {
+                    let row = [];
+                    for(let j=0; j<5; j++) row.push('');
+                    tableData.push(row);
+                }
+            }
+
             const table = document.createElement('table');
             Object.assign(table.style, {
                 width: '100%',
@@ -2055,46 +2553,228 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 fontSize: '12px',
                 color: isDark ? '#eee' : '#333'
             });
-            
-            if (data && data.length > 0) {
-                data.forEach((row, i) => {
-                    const tr = document.createElement('tr');
-                    row.forEach((val, j) => {
-                        const cell = i === 0 ? document.createElement('th') : document.createElement('td');
-                        cell.contentEditable = true;
-                        Object.assign(cell.style, {
-                            border: isDark ? '1px solid #555' : '1px solid #ddd',
-                            padding: '4px',
-                            minWidth: '50px',
-                            textAlign: 'center',
-                            backgroundColor: i === 0 ? (isDark ? '#444' : '#f9f9f9') : 'transparent'
-                        });
-                        cell.innerText = val;
-                        tr.appendChild(cell);
-                    });
-                    table.appendChild(tr);
-                });
-            } else {
-                for(let i=0; i<6; i++) {
-                    const tr = document.createElement('tr');
-                    for(let j=0; j<5; j++) {
-                        const cell = i === 0 ? document.createElement('th') : document.createElement('td');
-                        cell.contentEditable = true;
-                        Object.assign(cell.style, {
-                            border: isDark ? '1px solid #555' : '1px solid #ddd',
-                            padding: '4px',
-                            minWidth: '50px',
-                            textAlign: 'center',
-                            backgroundColor: i === 0 ? (isDark ? '#444' : '#f9f9f9') : 'transparent'
-                        });
-                        if (i === 0) cell.innerText = `Col ${j+1}`;
-                        tr.appendChild(cell);
-                    }
-                    table.appendChild(tr);
-                }
-            }
-            
             canvasContainer.appendChild(table);
+
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+            table.appendChild(thead);
+            table.appendChild(tbody);
+
+            const renderHeaders = () => {
+                thead.innerHTML = '';
+                const headerRow = document.createElement('tr');
+                headers.forEach((headerText, colIndex) => {
+                    const th = document.createElement('th');
+                    Object.assign(th.style, {
+                        border: isDark ? '1px solid #555' : '1px solid #ddd',
+                        padding: '8px',
+                        minWidth: '100px',
+                        textAlign: 'left',
+                        verticalAlign: 'top',
+                        backgroundColor: isDark ? '#444' : '#f9f9f9',
+                        position: 'sticky',
+                        top: '0',
+                        zIndex: '10',
+                        cursor: 'pointer'
+                    });
+
+                    // Toggle filter on header click
+                    th.onclick = (e) => {
+                        if (e.target.tagName === 'INPUT' || e.target.contentEditable === 'true') return;
+                        filterOpen[colIndex] = !filterOpen[colIndex];
+                        renderHeaders();
+                    };
+
+                    const div = document.createElement('div');
+                    div.style.display = 'flex';
+                    div.style.flexDirection = 'column';
+                    
+                    const topDiv = document.createElement('div');
+                    topDiv.style.display = 'flex';
+                    topDiv.style.justifyContent = 'space-between';
+                    topDiv.style.alignItems = 'center';
+                    
+                    const label = document.createElement('span');
+                    label.textContent = headerText;
+                    label.contentEditable = true;
+                    label.style.fontWeight = 'bold';
+                    label.style.marginRight = '5px';
+                    label.style.cursor = 'text';
+                    label.onclick = (e) => e.stopPropagation();
+                    label.onblur = (e) => { headers[colIndex] = e.target.textContent; };
+                    label.onkeydown = (e) => { if(e.key === 'Enter') { e.preventDefault(); label.blur(); }};
+
+                    const icons = document.createElement('div');
+                    icons.style.display = 'flex';
+                    icons.style.gap = '4px';
+                    // Show icons if sorted, filtered, or hovered
+                    const isSorted = currentSort.colIndex === colIndex;
+                    const isFiltered = filterOpen[colIndex];
+                    icons.style.opacity = (isSorted || isFiltered) ? '1' : '0';
+                    icons.style.transition = 'opacity 0.2s';
+                    
+                    th.onmouseenter = () => icons.style.opacity = '1';
+                    th.onmouseleave = () => {
+                        if (!isSorted && !isFiltered) icons.style.opacity = '0';
+                    };
+
+                    // Copy Icon
+                    const copyBtn = document.createElement('span');
+                    copyBtn.innerHTML = '📋';
+                    copyBtn.style.cursor = 'pointer';
+                    copyBtn.style.fontSize = '12px';
+                    copyBtn.title = 'Copy Column';
+                    copyBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        const displayData = getDisplayData();
+                        const colValues = displayData.map(d => d.row[colIndex]).join('\n');
+                        navigator.clipboard.writeText(colValues).then(() => {
+                            const original = copyBtn.innerHTML;
+                            copyBtn.innerHTML = '✅';
+                            setTimeout(() => copyBtn.innerHTML = original, 1000);
+                        });
+                    };
+
+                    // Sort Icon
+                    const sortBtn = document.createElement('span');
+                    sortBtn.innerHTML = isSorted ? (currentSort.dir === 'asc' ? '▲' : '▼') : '↕';
+                    sortBtn.style.cursor = 'pointer';
+                    sortBtn.style.fontSize = '12px';
+                    sortBtn.title = isSorted ? 'Toggle Sort (Asc/Desc/Clear)' : 'Sort Ascending';
+                    sortBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (currentSort.colIndex === colIndex) {
+                            if (currentSort.dir === 'asc') currentSort.dir = 'desc';
+                            else {
+                                currentSort.dir = 'none';
+                                currentSort.colIndex = -1;
+                            }
+                        } else {
+                            currentSort.colIndex = colIndex;
+                            currentSort.dir = 'asc';
+                        }
+                        renderHeaders();
+                        renderBody();
+                    };
+
+                    icons.appendChild(copyBtn);
+                    icons.appendChild(sortBtn);
+                    topDiv.appendChild(label);
+                    topDiv.appendChild(icons);
+
+                    const filterInput = document.createElement('input');
+                    filterInput.type = 'text';
+                    filterInput.placeholder = 'Filter...';
+                    filterInput.value = activeFilters[colIndex] || '';
+                    Object.assign(filterInput.style, {
+                        width: '100%',
+                        fontSize: '11px',
+                        border: '1px solid #ccc',
+                        borderRadius: '3px',
+                        padding: '2px',
+                        display: filterOpen[colIndex] ? 'block' : 'none',
+                        marginTop: '5px'
+                    });
+                    filterInput.onclick = (e) => e.stopPropagation();
+                    filterInput.oninput = (e) => {
+                        activeFilters[colIndex] = e.target.value;
+                        renderBody();
+                    };
+
+                    div.appendChild(topDiv);
+                    div.appendChild(filterInput);
+                    th.appendChild(div);
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+            };
+
+            const getDisplayData = () => {
+                // 1. Filter
+                let displayData = tableData.map((row, index) => ({ row, index })).filter(item => {
+                    return Object.entries(activeFilters).every(([colIndex, filterVal]) => {
+                        if (!filterVal) return true;
+                        const cellVal = String(item.row[colIndex] || '').toLowerCase();
+                        return cellVal.includes(filterVal.toLowerCase());
+                    });
+                });
+
+                // 2. Sort
+                if (currentSort.colIndex !== -1) {
+                    displayData.sort((a, b) => {
+                        let valA = a.row[currentSort.colIndex];
+                        let valB = b.row[currentSort.colIndex];
+                        
+                        const numA = parseFloat(valA);
+                        const numB = parseFloat(valB);
+                        if (!isNaN(numA) && !isNaN(numB)) {
+                            valA = numA;
+                            valB = numB;
+                        } else {
+                            valA = String(valA || '').toLowerCase();
+                            valB = String(valB || '').toLowerCase();
+                        }
+
+                        if (valA < valB) return currentSort.dir === 'asc' ? -1 : 1;
+                        if (valA > valB) return currentSort.dir === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+                }
+                return displayData;
+            };
+
+            const renderBody = () => {
+                tbody.innerHTML = '';
+                const displayData = getDisplayData();
+                
+                displayData.forEach((item) => {
+                    const tr = document.createElement('tr');
+                    item.row.forEach((val, colIndex) => {
+                        const td = document.createElement('td');
+                        Object.assign(td.style, {
+                            border: isDark ? '1px solid #555' : '1px solid #ddd',
+                            padding: '0', // Remove padding from TD to fix cursor height
+                            minWidth: '100px',
+                            verticalAlign: 'top'
+                        });
+                        
+                        const div = document.createElement('div');
+                        div.textContent = val;
+                        Object.assign(div.style, {
+                            padding: '8px', // Move padding to DIV
+                            minHeight: '100%',
+                            outline: 'none',
+                            textAlign: 'left',
+                            lineHeight: '1.5'
+                        });
+
+                        td.appendChild(div);
+                        
+                        td.ondblclick = () => {
+                            div.contentEditable = true;
+                            div.focus();
+                        };
+
+                        div.onblur = (e) => {
+                            div.contentEditable = false;
+                            tableData[item.index][colIndex] = e.target.textContent;
+                        };
+
+                        div.onkeydown = (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                div.blur();
+                            }
+                        };
+                        
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+            };
+
+            renderHeaders();
+            renderBody();
             
             // Paste Logic
             table.addEventListener('paste', (e) => {
@@ -2107,46 +2787,51 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 let target = selection.getRangeAt(0).startContainer;
                 if (target.nodeType === 3) target = target.parentNode;
                 
-                if (target.tagName !== 'TD' && target.tagName !== 'TH') return;
+                // Handle paste into DIV inside TD
+                if (target.tagName === 'DIV' && target.parentNode.tagName === 'TD') {
+                    target = target.parentNode;
+                }
                 
-                const startRow = target.parentNode.rowIndex;
-                const startCol = target.cellIndex;
+                if (target.tagName !== 'TD') return;
+                
+                // Find visual row index and map to data index
+                const tr = target.parentNode;
+                const visualRowIndex = tr.rowIndex - 1; // -1 for header
+                const colIndex = target.cellIndex;
+                
+                // We need to find the actual data index from the visual index
+                // But wait, if we are sorted/filtered, pasting might be confusing.
+                // Let's assume we paste into the visible rows.
+                
+                const displayData = getDisplayData();
                 
                 rows.forEach((rowText, r) => {
                     const cols = rowText.split('\t');
-                    let tr = table.rows[startRow + r];
-                    if (!tr) {
-                        tr = table.insertRow();
-                        for(let k=0; k<table.rows[0].cells.length; k++) {
-                            const td = document.createElement('td');
-                            td.contentEditable = true;
-                            Object.assign(td.style, {
-                                border: isDark ? '1px solid #555' : '1px solid #ddd',
-                                padding: '4px',
-                                minWidth: '50px',
-                                textAlign: 'center'
-                            });
-                            tr.appendChild(td);
-                        }
+                    
+                    // If we run out of existing rows, we might need to add new ones to tableData
+                    // But adding to tableData while filtered/sorted is tricky.
+                    // For simplicity, let's only paste into existing visible rows for now, 
+                    // or append to tableData if we are at the end.
+                    
+                    let dataItem = displayData[visualRowIndex + r];
+                    
+                    if (!dataItem) {
+                        // Append new row to tableData
+                        const newRow = new Array(headers.length).fill('');
+                        tableData.push(newRow);
+                        dataItem = { row: newRow, index: tableData.length - 1 };
+                        // Note: This new row might not appear if it doesn't match filters!
+                        // But usually paste implies we want to see it.
                     }
                     
                     cols.forEach((val, c) => {
-                        let cell = tr.cells[startCol + c];
-                        if (!cell) {
-                             const td = document.createElement('td');
-                            td.contentEditable = true;
-                            Object.assign(td.style, {
-                                border: isDark ? '1px solid #555' : '1px solid #ddd',
-                                padding: '4px',
-                                minWidth: '50px',
-                                textAlign: 'center'
-                            });
-                            tr.appendChild(td);
-                            cell = td;
+                        if (colIndex + c < headers.length) {
+                            dataItem.row[colIndex + c] = val;
                         }
-                        cell.innerText = val;
                     });
                 });
+                
+                renderBody();
             });
 
             // Table Context Menu (Row/Col Operations)
@@ -2156,10 +2841,30 @@ function createDashboardChart(type, x, y, parentElement = null) {
 
                 let target = e.target;
                 if (target.nodeType === 3) target = target.parentNode;
-                if (target.tagName !== 'TD' && target.tagName !== 'TH') return;
+                
+                // Handle Header Context Menu
+                if (target.tagName === 'TH' || target.closest('th')) {
+                    // Maybe add column operations here?
+                    return;
+                }
 
-                const rowIndex = target.parentNode.rowIndex;
+                // Handle DIV inside TD
+                if (target.tagName === 'DIV' && target.parentNode.tagName === 'TD') {
+                    target = target.parentNode;
+                }
+
+                if (target.tagName !== 'TD') return;
+
+                const tr = target.parentNode;
+                const visualRowIndex = tr.rowIndex - 1;
                 const colIndex = target.cellIndex;
+                
+                const displayData = getDisplayData();
+                const dataIndex = displayData[visualRowIndex].index;
+
+                // Close any other open menus
+                const dashboardMenu = document.getElementById('dashboard-context-menu');
+                if (dashboardMenu) dashboardMenu.remove();
 
                 const existingMenu = document.getElementById('table-context-menu');
                 if (existingMenu) existingMenu.remove();
@@ -2182,10 +2887,13 @@ function createDashboardChart(type, x, y, parentElement = null) {
                     fontSize: '13px'
                 });
 
+                const hasSort = currentSort.colIndex !== -1 && currentSort.dir !== 'none';
+                const hasFilter = Object.values(activeFilters).some(v => v && v.trim() !== '');
+
                 const actions = [
-                    { label: 'Insert Row Above', action: () => insertRow(rowIndex) },
-                    { label: 'Insert Row Below', action: () => insertRow(rowIndex + 1) },
-                    { label: 'Delete Row', action: () => deleteRow(rowIndex) },
+                    { label: 'Insert Row Above', action: () => insertRow(dataIndex) },
+                    { label: 'Insert Row Below', action: () => insertRow(dataIndex + 1) },
+                    { label: 'Delete Row', action: () => deleteRow(dataIndex) },
                     { type: 'separator' },
                     { label: 'Insert Column Left', action: () => insertCol(colIndex) },
                     { label: 'Insert Column Right', action: () => insertCol(colIndex + 1) },
@@ -2193,6 +2901,16 @@ function createDashboardChart(type, x, y, parentElement = null) {
                     { type: 'separator' },
                     { label: 'Download CSV', action: () => downloadCSV() }
                 ];
+
+                if (hasSort || hasFilter) {
+                    actions.push({ type: 'separator' });
+                    if (hasSort) {
+                        actions.push({ label: 'Clear Sorting', action: () => clearSorting() });
+                    }
+                    if (hasFilter) {
+                        actions.push({ label: 'Clear Filters', action: () => clearFilters() });
+                    }
+                }
 
                 actions.forEach(opt => {
                     if (opt.type === 'separator') {
@@ -2229,64 +2947,65 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 setTimeout(() => document.addEventListener('click', closeMenu), 0);
 
                 function insertRow(index) {
-                    const newRow = table.insertRow(index);
-                    const colCount = table.rows[0].cells.length;
-                    for(let i=0; i<colCount; i++) {
-                        const cell = newRow.insertCell(i);
-                        cell.contentEditable = true;
-                        Object.assign(cell.style, {
-                            border: isDark ? '1px solid #555' : '1px solid #ddd',
-                            padding: '4px',
-                            minWidth: '50px',
-                            textAlign: 'center'
-                        });
-                    }
+                    const newRow = new Array(headers.length).fill('');
+                    tableData.splice(index, 0, newRow);
+                    renderBody();
                 }
 
                 function deleteRow(index) {
-                    if (table.rows.length > 1) {
-                        table.deleteRow(index);
+                    if (tableData.length > 1) {
+                        tableData.splice(index, 1);
+                        renderBody();
                     }
                 }
 
                 function insertCol(index) {
-                    for(let i=0; i<table.rows.length; i++) {
-                        const row = table.rows[i];
-                        const cell = row.insertCell(index);
-                        cell.contentEditable = true;
-                        Object.assign(cell.style, {
-                            border: isDark ? '1px solid #555' : '1px solid #ddd',
-                            padding: '4px',
-                            minWidth: '50px',
-                            textAlign: 'center',
-                            backgroundColor: i === 0 ? (isDark ? '#444' : '#f9f9f9') : 'transparent'
-                        });
-                        if (i === 0) cell.innerText = `New Col`;
-                    }
+                    headers.splice(index, 0, 'New Col');
+                    tableData.forEach(row => row.splice(index, 0, ''));
+                    renderHeaders();
+                    renderBody();
                 }
 
                 function deleteCol(index) {
-                    if (table.rows[0].cells.length > 1) {
-                        for(let i=0; i<table.rows.length; i++) {
-                            table.rows[i].deleteCell(index);
-                        }
+                    if (headers.length > 1) {
+                        headers.splice(index, 1);
+                        tableData.forEach(row => row.splice(index, 1));
+                        renderHeaders();
+                        renderBody();
                     }
                 }
 
+                function clearSorting() {
+                    currentSort = { colIndex: -1, dir: 'none' };
+                    renderHeaders();
+                    renderBody();
+                }
+
+                function clearFilters() {
+                    activeFilters = {};
+                    renderHeaders();
+                    renderBody();
+                }
+
                 function downloadCSV() {
+                    // Download filtered/sorted data or all data?
+                    // Usually WYSIWYG, so displayData
+                    const displayData = getDisplayData();
                     let csv = [];
-                    for (let i = 0; i < table.rows.length; i++) {
-                        let row = [], cols = table.rows[i].cells;
-                        for (let j = 0; j < cols.length; j++) {
-                            // Escape double quotes and wrap in quotes if needed
-                            let data = cols[j].innerText.replace(/"/g, '""');
+                    // Headers
+                    csv.push(headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','));
+                    // Rows
+                    displayData.forEach(item => {
+                        const row = item.row.map(val => {
+                            let data = String(val).replace(/"/g, '""');
                             if (data.search(/("|,|\n)/g) >= 0) {
                                 data = '"' + data + '"';
                             }
-                            row.push(data);
-                        }
+                            return data;
+                        });
                         csv.push(row.join(","));
-                    }
+                    });
+                    
                     const csvString = csv.join("\n");
                     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement("a");
@@ -2350,6 +3069,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
         else dashboard.appendChild(container);
         
         if (!parentElement) addDragLogic(header, container);
+        updateDashboardControlsVisibility();
         return;
     }
 
@@ -2393,14 +3113,211 @@ function createDashboardChart(type, x, y, parentElement = null) {
         
         // Add drag logic only if not in container
         if (!parentElement) addDragLogic(header, container);
+        updateDashboardControlsVisibility();
         return;
     }
 
     const canvas = document.createElement('canvas');
-    canvasContainer.appendChild(canvas);
+    // canvasContainer.appendChild(canvas); // Moved to initChart
     container.appendChild(canvasContainer);
     if (parentElement) parentElement.appendChild(container);
     else dashboard.appendChild(container);
+
+    // NEW: Startup Screen for Charts
+    const startupDiv = document.createElement('div');
+    Object.assign(startupDiv.style, {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        gap: '15px',
+        color: isDark ? '#eee' : '#333',
+        padding: '20px',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        zIndex: 10,
+        backgroundColor: isDark ? '#2b2b2b' : 'white'
+    });
+
+    const msg = document.createElement('div');
+    msg.innerText = "Choose data source:";
+    msg.style.fontWeight = 'bold';
+    
+    const btnGroup = document.createElement('div');
+    btnGroup.style.display = 'flex';
+    btnGroup.style.gap = '10px';
+
+    const sampleBtn = document.createElement('button');
+    sampleBtn.innerText = 'Sample Data';
+    Object.assign(sampleBtn.style, {
+        padding: '8px 15px',
+        cursor: 'pointer',
+        backgroundColor: isDark ? '#444' : '#f0f0f0',
+        border: '1px solid #888',
+        borderRadius: '4px',
+        color: isDark ? '#eee' : '#333'
+    });
+    
+    sampleBtn.onclick = () => initChart(null);
+
+    btnGroup.appendChild(sampleBtn);
+
+    if (window.lineageData && window.lineageData.tables && window.lineageData.tables.length > 0) {
+        const lineageBtn = document.createElement('button');
+        lineageBtn.innerText = 'From Lineage';
+        Object.assign(lineageBtn.style, {
+            padding: '8px 15px',
+            cursor: 'pointer',
+            backgroundColor: '#28a745',
+            border: '1px solid #218838',
+            borderRadius: '4px',
+            color: 'white'
+        });
+        
+        lineageBtn.onclick = () => {
+             msg.innerText = "Select a dataset:";
+             btnGroup.innerHTML = '';
+             btnGroup.style.flexDirection = 'column';
+             btnGroup.style.width = '100%';
+             btnGroup.style.maxHeight = '150px';
+             btnGroup.style.overflowY = 'auto';
+
+             window.lineageData.tables.forEach(table => {
+                const item = document.createElement('div');
+                item.innerText = table.name;
+                Object.assign(item.style, {
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    marginBottom: '5px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    backgroundColor: isDark ? '#444' : 'white'
+                });
+                item.onclick = () => {
+                    if (!table.data || table.data.length === 0) {
+                        alert("Selected table has no data.");
+                        return;
+                    }
+                    
+                    // For Scatter/Line/Bar/Pie Plot, show column selection
+                    if (type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') {
+                        showChartColumnSelection(table);
+                    } else {
+                        initChart(table);
+                    }
+                };
+                btnGroup.appendChild(item);
+            });
+        };
+        btnGroup.appendChild(lineageBtn);
+    }
+
+    const showChartColumnSelection = (table) => {
+        msg.innerText = `Configure ${type.charAt(0).toUpperCase() + type.slice(1)} Plot:`;
+        btnGroup.innerHTML = '';
+        btnGroup.style.flexDirection = 'column';
+        btnGroup.style.width = '100%';
+        btnGroup.style.maxHeight = 'none';
+        btnGroup.style.overflowY = 'visible';
+        btnGroup.style.alignItems = 'flex-start';
+
+        const createSelect = (label, options) => {
+            const wrapper = document.createElement('div');
+            wrapper.style.marginBottom = '10px';
+            wrapper.style.width = '100%';
+            
+            const lbl = document.createElement('label');
+            lbl.innerText = label;
+            lbl.style.display = 'block';
+            lbl.style.marginBottom = '5px';
+            lbl.style.fontSize = '12px';
+            
+            const select = document.createElement('select');
+            select.style.width = '100%';
+            select.style.padding = '5px';
+            select.style.borderRadius = '4px';
+            select.style.border = '1px solid #ccc';
+            select.style.backgroundColor = isDark ? '#444' : 'white';
+            select.style.color = isDark ? '#eee' : '#333';
+
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.value = opt;
+                el.innerText = opt;
+                select.appendChild(el);
+            });
+            
+            wrapper.appendChild(lbl);
+            wrapper.appendChild(select);
+            return { wrapper, select };
+        };
+
+        const columns = table.columns.map(c => c.name);
+        const isPie = type === 'pie' || type === 'doughnut';
+        
+        const xLabel = isPie ? "Category/Label Column:" : "X Axis (Numeric):";
+        const yLabel = isPie ? "Value Column:" : "Y Axis (Numeric):";
+
+        const xSelect = createSelect(xLabel, columns);
+        const ySelect = createSelect(yLabel, columns);
+        
+        let colorSelect = null;
+        if (!isPie) {
+            colorSelect = createSelect("Color Series (Optional):", ["(None)", ...columns]);
+        }
+
+        // Try to auto-select reasonable defaults
+        const numCols = table.columns.filter(c => c.type === 'int' || c.type === 'decimal').map(c => c.name);
+        const strCols = table.columns.filter(c => c.type === 'string').map(c => c.name);
+
+        if (isPie) {
+            if (strCols.length > 0) xSelect.select.value = strCols[0];
+            if (numCols.length > 0) ySelect.select.value = numCols[0];
+        } else {
+            if (numCols.length > 0) xSelect.select.value = numCols[0];
+            if (numCols.length > 1) ySelect.select.value = numCols[1];
+        }
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.innerText = "Create Plot";
+        Object.assign(confirmBtn.style, {
+            marginTop: '10px',
+            padding: '8px 15px',
+            cursor: 'pointer',
+            backgroundColor: '#0075ff',
+            border: 'none',
+            borderRadius: '4px',
+            color: 'white',
+            width: '100%'
+        });
+
+        confirmBtn.onclick = () => {
+            const config = {
+                xAxis: xSelect.select.value,
+                yAxis: ySelect.select.value,
+                colorAxis: colorSelect && colorSelect.select.value !== "(None)" ? colorSelect.select.value : null
+            };
+            initChart(table, config);
+        };
+
+        btnGroup.appendChild(xSelect.wrapper);
+        btnGroup.appendChild(ySelect.wrapper);
+        if (colorSelect) btnGroup.appendChild(colorSelect.wrapper);
+        btnGroup.appendChild(confirmBtn);
+    };
+
+    if (type !== 'scatter' && type !== 'line' && type !== 'bar') {
+        startupDiv.appendChild(msg);
+        startupDiv.appendChild(btnGroup);
+        canvasContainer.appendChild(startupDiv);
+    }
+
+    const initChart = (sourceTable, config = null) => {
+        if (startupDiv.parentNode) startupDiv.remove();
+        if (!canvas.parentNode) canvasContainer.appendChild(canvas);
 
     // Configure Chart Data based on Type
     let chartType = type;
@@ -2422,11 +3339,67 @@ function createDashboardChart(type, x, y, parentElement = null) {
                     enabled: true,
                     mode: 'xy'
                 }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += `(${context.parsed.x}, ${context.parsed.y})`;
+                        }
+                        return label;
+                    }
+                }
             }
         }
     };
 
-    if (type === 'bubble') {
+    if ((type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') && !sourceTable) {
+        const isScatter = type === 'scatter';
+        const isPie = type === 'pie';
+        
+        let dataPoints = [];
+        let labels = [];
+
+        if (isPie) {
+            labels = ['Category A', 'Category B', 'Category C', 'Category D'];
+            dataPoints = [10, 20, 30, 40];
+        } else {
+            dataPoints = [
+                { x: -10, y: 0 }, { x: 0, y: 10 }, { x: 10, y: 5 }, { x: 0.5, y: 5.5 }
+            ];
+            if (!isScatter) dataPoints.sort((a, b) => a.x - b.x);
+        }
+
+        let label = 'Sample Line';
+        if (type === 'scatter') label = 'Sample Scatter';
+        if (type === 'bar') label = 'Sample Bar';
+        if (type === 'pie') label = 'Sample Pie';
+
+        chartData = {
+            labels: isPie ? labels : undefined,
+            datasets: [{
+                label: label,
+                data: dataPoints,
+                backgroundColor: isPie ? colors : colors[0],
+                borderColor: isPie ? borders : borders[0],
+                borderWidth: 1,
+                pointRadius: 5,
+                tension: isScatter ? 0 : 0.4,
+                fill: false
+            }]
+        };
+        
+        if (!isPie) {
+            chartOptions.scales = {
+                x: { type: 'linear', position: 'bottom', grid: { color: isDark ? '#444' : '#ddd' }, ticks: { color: isDark ? '#eee' : '#666' } },
+                y: { grid: { color: isDark ? '#444' : '#ddd' }, ticks: { color: isDark ? '#eee' : '#666' } }
+            };
+        }
+    } else if (type === 'bubble') {
         chartData = {
             datasets: [{
                 label: 'Bubble Dataset',
@@ -2541,6 +3514,144 @@ function createDashboardChart(type, x, y, parentElement = null) {
         }
     }
 
+    if (sourceTable) {
+         const headers = sourceTable.columns.map(c => c.name);
+         const rows = sourceTable.data;
+         
+         if ((type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') && config) {
+             // Scatter/Line/Bar/Pie Plot Logic with Config
+             const xCol = config.xAxis;
+             const yCol = config.yAxis;
+             const colorCol = config.colorAxis;
+             const isScatter = type === 'scatter';
+             const isPie = type === 'pie';
+
+             if (isPie) {
+                 // Pie Chart Logic: X is Label, Y is Value
+                 const labels = rows.map(row => row[xCol]);
+                 const data = rows.map(row => parseFloat(row[yCol]) || 0);
+                 
+                 chartData = {
+                     labels: labels,
+                     datasets: [{
+                         label: yCol,
+                         data: data,
+                         backgroundColor: colors,
+                         borderColor: borders,
+                         borderWidth: 1
+                     }]
+                 };
+             } else if (colorCol) {
+                 // Group data by color column
+                 const groups = {};
+                 rows.forEach(row => {
+                     const groupVal = row[colorCol];
+                     if (!groups[groupVal]) groups[groupVal] = [];
+                     groups[groupVal].push({
+                         x: parseFloat(row[xCol]) || 0,
+                         y: parseFloat(row[yCol]) || 0
+                     });
+                 });
+
+                 chartData = {
+                     datasets: Object.keys(groups).map((group, i) => {
+                         const dsData = groups[group];
+                         if (!isScatter) dsData.sort((a, b) => a.x - b.x);
+                         return {
+                             label: group,
+                             data: dsData,
+                             backgroundColor: colors[i % colors.length],
+                             borderColor: borders[i % borders.length],
+                             borderWidth: 1,
+                             pointRadius: 5,
+                             tension: isScatter ? 0 : 0.4,
+                             fill: false
+                         };
+                     })
+                 };
+             } else {
+                 // Single dataset
+                 const data = rows.map(row => ({
+                     x: parseFloat(row[xCol]) || 0,
+                     y: parseFloat(row[yCol]) || 0
+                 }));
+                 
+                 if (!isScatter) data.sort((a, b) => a.x - b.x);
+
+                 chartData = {
+                     datasets: [{
+                         label: `${yCol} vs ${xCol}`,
+                         data: data,
+                         backgroundColor: colors[0],
+                         borderColor: borders[0],
+                         borderWidth: 1,
+                         pointRadius: 5,
+                         tension: isScatter ? 0 : 0.4,
+                         fill: false
+                     }]
+                 };
+             }
+             
+             if (!isPie) {
+                chartOptions.scales = {
+                    x: { 
+                        type: 'linear', 
+                        position: 'bottom',
+                        title: { 
+                            display: true, 
+                            text: config.xLabel || xCol, 
+                            color: isDark ? '#eee' : '#666' 
+                        },
+                        ticks: { color: isDark ? '#eee' : '#666' }, 
+                        grid: { 
+                            color: isDark ? '#444' : '#ddd',
+                            display: config.xGrid !== false 
+                        },
+                        min: config.xMin ? parseFloat(config.xMin) : undefined,
+                        max: config.xMax ? parseFloat(config.xMax) : undefined
+                    },
+                    y: { 
+                        title: { 
+                            display: true, 
+                            text: config.yLabel || yCol, 
+                            color: isDark ? '#eee' : '#666' 
+                        },
+                        ticks: { color: isDark ? '#eee' : '#666' }, 
+                        grid: { 
+                            color: isDark ? '#444' : '#ddd',
+                            display: config.yGrid !== false 
+                        },
+                        min: config.yMin ? parseFloat(config.yMin) : undefined,
+                        max: config.yMax ? parseFloat(config.yMax) : undefined
+                    }
+                };
+             }
+
+         } else {
+             // Auto-detect columns (Fallback for other charts)
+             const labelCol = sourceTable.columns.find(c => c.type === 'string') || sourceTable.columns[0];
+             const dataCol = sourceTable.columns.find(c => c.type === 'int' || c.type === 'decimal') || sourceTable.columns[1];
+             
+             if (labelCol && dataCol) {
+                 const labels = rows.map(r => r[labelCol.name]);
+                 const data = rows.map(r => parseFloat(r[dataCol.name]) || 0);
+                 
+                 chartData = {
+                    labels: labels,
+                    datasets: [{
+                        label: dataCol.name,
+                        data: data,
+                        backgroundColor: type === 'pie' || type === 'doughnut' ? colors : colors[0],
+                        borderColor: type === 'pie' || type === 'doughnut' ? borders : borders[0],
+                        borderWidth: 1
+                    }]
+                 };
+             } else {
+                 alert("Could not auto-detect suitable columns (String + Number). Using sample data.");
+             }
+         }
+    }
+
     // Initialize Chart
     const chartInstance = new Chart(canvas, {
         type: chartType,
@@ -2633,6 +3744,398 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 if (chartInstance) chartInstance.update();
             }
         };
+    }
+    }; // End initChart
+
+    const openChartSettings = (chart) => {
+        // Create Drawer Overlay
+        const overlay = document.createElement('div');
+        Object.assign(overlay.style, {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex',
+            justifyContent: 'flex-end', alignItems: 'stretch'
+        });
+        
+        // Close on click outside
+        overlay.onclick = (e) => {
+            if (e.target === overlay) document.body.removeChild(overlay);
+        };
+
+        // Drawer Content
+        const modal = document.createElement('div'); // Variable name kept as modal for minimal diff
+        Object.assign(modal.style, {
+            backgroundColor: isDark ? '#333' : 'white',
+            color: isDark ? '#eee' : '#333',
+            width: '400px', 
+            height: '100%',
+            boxShadow: '-2px 0 10px rgba(0,0,0,0.3)',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            transform: 'translateX(100%)', transition: 'transform 0.3s ease-out'
+        });
+        
+        // Slide in animation
+        requestAnimationFrame(() => {
+            modal.style.transform = 'translateX(0)';
+        });
+
+        // Resizer Handle
+        const resizer = document.createElement('div');
+        Object.assign(resizer.style, {
+            width: '5px',
+            height: '100%',
+            cursor: 'ew-resize',
+            position: 'absolute',
+            left: '0',
+            top: '0',
+            zIndex: '10001',
+            backgroundColor: 'transparent'
+        });
+        resizer.onmouseover = () => resizer.style.backgroundColor = '#0075ff';
+        resizer.onmouseout = () => resizer.style.backgroundColor = 'transparent';
+        modal.appendChild(resizer);
+
+        // Resizing Logic
+        let isResizing = false;
+        let startX, startWidth;
+
+        resizer.onmousedown = (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startWidth = parseInt(window.getComputedStyle(modal).width, 10);
+            document.body.style.cursor = 'ew-resize';
+            e.preventDefault(); // Prevent text selection
+        };
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const dx = startX - e.clientX; // Dragging left increases width
+            let newWidth = startWidth + dx;
+            
+            // Constraints
+            if (newWidth < 300) newWidth = 300;
+            if (newWidth > 800) newWidth = 800;
+
+            modal.style.width = `${newWidth}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = 'default';
+            }
+        });
+
+        // Header
+        const header = document.createElement('div');
+        header.innerText = `${chart.config.type.charAt(0).toUpperCase() + chart.config.type.slice(1)} Settings`;
+        Object.assign(header.style, {
+            padding: '15px', borderBottom: isDark ? '1px solid #444' : '1px solid #ddd',
+            fontWeight: 'bold', fontSize: '16px', display: 'flex', justifyContent: 'space-between'
+        });
+        const closeX = document.createElement('span');
+        closeX.innerHTML = '&times;';
+        closeX.style.cursor = 'pointer';
+        closeX.onclick = () => document.body.removeChild(overlay);
+        header.appendChild(closeX);
+        modal.appendChild(header);
+
+        // Tabs
+        const tabsContainer = document.createElement('div');
+        tabsContainer.style.display = 'flex';
+        tabsContainer.style.borderBottom = isDark ? '1px solid #444' : '1px solid #ddd';
+        
+        const tabs = ['Data', 'Axes', 'Misc'];
+        let activeTab = 'Data';
+        const tabContent = document.createElement('div');
+        tabContent.style.padding = '20px';
+        tabContent.style.overflowY = 'auto';
+        tabContent.style.flex = '1';
+
+        const renderTabs = () => {
+            tabsContainer.innerHTML = '';
+            tabs.forEach(t => {
+                const tab = document.createElement('div');
+                tab.innerText = t;
+                Object.assign(tab.style, {
+                    padding: '10px 20px', cursor: 'pointer',
+                    borderBottom: activeTab === t ? '2px solid #0075ff' : '2px solid transparent',
+                    color: activeTab === t ? '#0075ff' : (isDark ? '#eee' : '#333'),
+                    fontWeight: activeTab === t ? 'bold' : 'normal'
+                });
+                tab.onclick = () => { activeTab = t; renderTabs(); renderContent(); };
+                tabsContainer.appendChild(tab);
+            });
+        };
+        modal.appendChild(tabsContainer);
+        modal.appendChild(tabContent);
+
+        // State for settings
+        let selectedTableId = null;
+        let config = { 
+            xAxis: '', yAxis: '', colorAxis: '(None)', 
+            seriesNames: '[]', colors: '[]',
+            xMin: '', xMax: '', xLabel: '', xGrid: true,
+            yMin: '', yMax: '', yLabel: '', yGrid: true,
+            chartTitle: ''
+        };
+
+        // Load existing config if available
+        if (chart.canvas._chartConfig) {
+            const saved = chart.canvas._chartConfig;
+            selectedTableId = saved.tableId;
+            config = { ...config, ...saved.config };
+        }
+
+        // Pre-fill chart title
+        const titleEl = chart.canvas.closest('.dashboard-chart-container').querySelector('.dashboard-chart-header span');
+        if (titleEl) config.chartTitle = titleEl.textContent;
+
+        const renderContent = () => {
+            tabContent.innerHTML = '';
+            if (activeTab === 'Data') {
+                const lbl = document.createElement('label');
+                lbl.innerText = 'Select Dataset:';
+                lbl.style.display = 'block'; lbl.style.marginBottom = '5px';
+                
+                const select = document.createElement('select');
+                select.style.width = '100%'; select.style.padding = '8px';
+                select.style.marginBottom = '15px';
+                select.style.backgroundColor = isDark ? '#444' : 'white';
+                select.style.color = isDark ? '#eee' : '#333';
+                select.style.border = '1px solid #888';
+                
+                const def = document.createElement('option');
+                def.text = 'Select...';
+                select.appendChild(def);
+
+                if (window.lineageData && window.lineageData.tables) {
+                    window.lineageData.tables.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.text = t.name;
+                        if (selectedTableId === t.id) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                }
+                
+                select.onchange = () => { selectedTableId = parseInt(select.value); };
+                tabContent.appendChild(lbl);
+                tabContent.appendChild(select);
+            } else if (activeTab === 'Axes') {
+                if (!selectedTableId) {
+                    tabContent.innerText = 'Please select a dataset in the Data tab first.';
+                    return;
+                }
+                const table = window.lineageData.tables.find(t => t.id === selectedTableId);
+                const cols = table.columns.map(c => c.name);
+
+                const createSel = (label, key, opts) => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '15px';
+                    const l = document.createElement('label');
+                    l.innerText = label; l.style.display = 'block'; l.style.marginBottom = '5px';
+                    const s = document.createElement('select');
+                    s.style.width = '100%'; s.style.padding = '8px';
+                    s.style.backgroundColor = isDark ? '#444' : 'white';
+                    s.style.color = isDark ? '#eee' : '#333';
+                    s.style.border = '1px solid #888';
+
+                    opts.forEach(o => {
+                        const op = document.createElement('option');
+                        op.value = o; op.text = o;
+                        if (config[key] === o) op.selected = true;
+                        s.appendChild(op);
+                    });
+                    s.onchange = () => { config[key] = s.value; };
+                    div.appendChild(l); div.appendChild(s);
+                    return div;
+                };
+
+                tabContent.appendChild(createSel('X Axis', 'xAxis', cols));
+                tabContent.appendChild(createSel('Y Axis', 'yAxis', cols));
+                tabContent.appendChild(createSel('Color By (Series)', 'colorAxis', ['(None)', ...cols]));
+
+                // Helper for Input Fields
+                const createInput = (label, key, type = 'text', placeholder = '') => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '15px';
+                    const l = document.createElement('label');
+                    l.innerText = label; l.style.display = 'block'; l.style.marginBottom = '5px';
+                    const i = document.createElement('input');
+                    i.type = type;
+                    i.style.width = '100%'; i.style.padding = '8px';
+                    i.style.backgroundColor = isDark ? '#444' : 'white';
+                    i.style.color = isDark ? '#eee' : '#333';
+                    i.style.border = '1px solid #888';
+                    i.placeholder = placeholder;
+                    i.value = config[key] || '';
+                    i.onchange = () => { config[key] = i.value; };
+                    div.appendChild(l); div.appendChild(i);
+                    return div;
+                };
+
+                // Helper for Checkbox
+                const createCheckbox = (label, key) => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '10px';
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'center';
+                    
+                    const i = document.createElement('input');
+                    i.type = 'checkbox';
+                    i.checked = config[key] !== false; // Default true
+                    i.onchange = () => { config[key] = i.checked; };
+                    
+                    const l = document.createElement('label');
+                    l.innerText = label;
+                    l.style.marginLeft = '5px';
+                    l.style.cursor = 'pointer';
+                    l.onclick = () => { i.checked = !i.checked; i.onchange(); };
+                    
+                    div.appendChild(i); div.appendChild(l);
+                    return div;
+                };
+
+                // X Axis Settings
+                const xGroup = document.createElement('div');
+                xGroup.style.borderTop = isDark ? '1px solid #555' : '1px solid #ddd';
+                xGroup.style.paddingTop = '10px';
+                xGroup.style.marginTop = '10px';
+                xGroup.innerHTML = '<strong>X Axis Settings</strong>';
+                xGroup.appendChild(createInput('Label', 'xLabel', 'text', 'Custom X Label'));
+                xGroup.appendChild(createCheckbox('Show Gridlines', 'xGrid'));
+                
+                const xRange = document.createElement('div');
+                xRange.style.display = 'flex'; xRange.style.gap = '10px';
+                const xMinDiv = createInput('Min', 'xMin', 'number');
+                const xMaxDiv = createInput('Max', 'xMax', 'number');
+                xMinDiv.style.flex = '1'; xMaxDiv.style.flex = '1';
+                xRange.appendChild(xMinDiv); xRange.appendChild(xMaxDiv);
+                xGroup.appendChild(xRange);
+                tabContent.appendChild(xGroup);
+
+                // Y Axis Settings
+                const yGroup = document.createElement('div');
+                yGroup.style.borderTop = isDark ? '1px solid #555' : '1px solid #ddd';
+                yGroup.style.paddingTop = '10px';
+                yGroup.style.marginTop = '10px';
+                yGroup.innerHTML = '<strong>Y Axis Settings</strong>';
+                yGroup.appendChild(createInput('Label', 'yLabel', 'text', 'Custom Y Label'));
+                yGroup.appendChild(createCheckbox('Show Gridlines', 'yGrid'));
+
+                const yRange = document.createElement('div');
+                yRange.style.display = 'flex'; yRange.style.gap = '10px';
+                const yMinDiv = createInput('Min', 'yMin', 'number');
+                const yMaxDiv = createInput('Max', 'yMax', 'number');
+                yMinDiv.style.flex = '1'; yMaxDiv.style.flex = '1';
+                yRange.appendChild(yMinDiv); yRange.appendChild(yMaxDiv);
+                yGroup.appendChild(yRange);
+                tabContent.appendChild(yGroup);
+
+            } else if (activeTab === 'Misc') {
+                const createArea = (label, key, placeholder) => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '15px';
+                    const l = document.createElement('label');
+                    l.innerText = label; l.style.display = 'block'; l.style.marginBottom = '5px';
+                    const t = document.createElement('textarea');
+                    t.style.width = '100%'; t.style.height = '60px'; t.style.padding = '8px';
+                    t.style.backgroundColor = isDark ? '#444' : 'white';
+                    t.style.color = isDark ? '#eee' : '#333';
+                    t.style.border = '1px solid #888';
+                    t.placeholder = placeholder;
+                    t.value = config[key];
+                    t.onchange = () => { config[key] = t.value; };
+                    div.appendChild(l); div.appendChild(t);
+                    return div;
+                };
+                
+                // Chart Title Input
+                const titleDiv = document.createElement('div');
+                titleDiv.style.marginBottom = '15px';
+                const titleLbl = document.createElement('label');
+                titleLbl.innerText = 'Chart Title'; titleLbl.style.display = 'block'; titleLbl.style.marginBottom = '5px';
+                const titleInput = document.createElement('input');
+                titleInput.type = 'text';
+                titleInput.style.width = '100%'; titleInput.style.padding = '8px';
+                titleInput.style.backgroundColor = isDark ? '#444' : 'white';
+                titleInput.style.color = isDark ? '#eee' : '#333';
+                titleInput.style.border = '1px solid #888';
+                titleInput.value = config.chartTitle || '';
+                titleInput.onchange = () => { config.chartTitle = titleInput.value; };
+                titleDiv.appendChild(titleLbl); titleDiv.appendChild(titleInput);
+                tabContent.appendChild(titleDiv);
+
+                tabContent.appendChild(createArea('Series Names (JSON Array)', 'seriesNames', '["Series 1", "Series 2"]'));
+                tabContent.appendChild(createArea('Custom Colors (JSON Array)', 'colors', '["#ff0000", "#00ff00"]'));
+            }
+        };
+
+        // Footer
+        const footer = document.createElement('div');
+        Object.assign(footer.style, {
+            padding: '15px', borderTop: isDark ? '1px solid #444' : '1px solid #ddd',
+            display: 'flex', justifyContent: 'flex-end', gap: '10px'
+        });
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.innerText = 'Cancel';
+        Object.assign(cancelBtn.style, {
+            padding: '8px 15px', border: 'none', borderRadius: '4px', cursor: 'pointer',
+            backgroundColor: '#ccc', color: '#333'
+        });
+        cancelBtn.onclick = () => document.body.removeChild(overlay);
+
+        const applyBtn = document.createElement('button');
+        applyBtn.innerText = 'Apply';
+        Object.assign(applyBtn.style, {
+            padding: '8px 15px', border: 'none', borderRadius: '4px', cursor: 'pointer',
+            backgroundColor: '#0075ff', color: 'white'
+        });
+        applyBtn.onclick = () => {
+            if (selectedTableId) {
+                const table = window.lineageData.tables.find(t => t.id === selectedTableId);
+                let parsedConfig = { ...config };
+                try { parsedConfig.seriesNames = JSON.parse(config.seriesNames || '[]'); } catch(e) {}
+                try { parsedConfig.colors = JSON.parse(config.colors || '[]'); } catch(e) {}
+                
+                // Update Chart Title
+                if (config.chartTitle) {
+                    const titleEl = chart.canvas.closest('.dashboard-chart-container').querySelector('.dashboard-chart-header span');
+                    if (titleEl) titleEl.textContent = config.chartTitle;
+                }
+
+                // Save config to canvas for persistence
+                chart.canvas._chartConfig = {
+                    tableId: selectedTableId,
+                    config: config
+                };
+
+                // Destroy old chart instance to clean up
+                chart.destroy();
+                initChart(table, parsedConfig);
+            }
+            document.body.removeChild(overlay);
+        };
+
+        footer.appendChild(cancelBtn);
+        footer.appendChild(applyBtn);
+        modal.appendChild(footer);
+
+        renderTabs();
+        renderContent();
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+    };
+
+    if (type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') {
+        canvas.oncontextmenu = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const chart = Chart.getChart(canvas);
+            if (chart) openChartSettings(chart);
+        };
+        initChart(null);
     }
     
     updateDashboardControlsVisibility();
@@ -3026,30 +4529,54 @@ var bottom_sidebar = L.control.sidebar('onemap-sidebar-bottom', {
 
 // NEW: Handle Sidebar Overlaps
 function updateBottomSidebarLayout() {
-    const bottomEl = bottom_sidebar.getContainer().parentElement; // .leaflet-sidebar.bottom
+    const bottomEl = bottom_sidebar.getContainer(); // .leaflet-sidebar.bottom
     if (!bottomEl) return;
 
     let leftOffset = 0;
     let rightOffset = 0;
 
-    if (filter_sidebar.isVisible()) {
-        const leftEl = filter_sidebar.getContainer().parentElement;
-        leftOffset = leftEl.offsetWidth;
+    if (filter_sidebar) {
+        const leftEl = filter_sidebar.getContainer();
+        // Check if visible OR if it has a width (it might be visible but transitioning)
+        if (filter_sidebar.isVisible()) {
+            leftOffset = leftEl.offsetWidth;
+        } else {
+            leftOffset = 32; // Tab width
+        }
     }
 
-    if (details_sidebar.isVisible()) {
-        const rightEl = details_sidebar.getContainer().parentElement;
-        rightOffset = rightEl.offsetWidth;
+    if (details_sidebar) {
+        const rightEl = details_sidebar.getContainer();
+        if (details_sidebar.isVisible()) {
+            rightOffset = rightEl.offsetWidth;
+        } else {
+            rightOffset = 32; // Tab width
+        }
     }
+
+    // Ensure minimum offset if sidebars are somehow 0 width but visible
+    if (filter_sidebar && filter_sidebar.isVisible() && leftOffset < 32) leftOffset = 300; // Default width
 
     bottomEl.style.left = leftOffset + 'px';
     bottomEl.style.width = `calc(100% - ${leftOffset + rightOffset}px)`;
+
+    // Adjust Measure Control Position
+    const measureEl = document.querySelector('.leaflet-control-measure');
+    if (measureEl) {
+        if (bottom_sidebar.isVisible()) {
+            const height = bottomEl.offsetHeight || 300;
+            measureEl.style.marginBottom = `${height + 10}px`; // Added buffer
+            measureEl.style.transition = 'margin-bottom 0.5s';
+        } else {
+            measureEl.style.marginBottom = '0';
+        }
+    }
 }
 
 // Listen to events
 filter_sidebar.on('show shown hide hidden resize', updateBottomSidebarLayout);
 details_sidebar.on('show shown hide hidden resize', updateBottomSidebarLayout);
-bottom_sidebar.on('show', updateBottomSidebarLayout);
+bottom_sidebar.on('show shown hide hidden resize', updateBottomSidebarLayout);
 
 // Initial check
 updateBottomSidebarLayout();
@@ -3142,6 +4669,23 @@ function updateChartTheme() {
         addPlotBtn.style.backgroundColor = isDark ? '#2b2b2b' : '#fafafa';
         addPlotBtn.style.color = isDark ? '#888' : '#999';
     }
+
+    // NEW: Update Multi-Well Charts
+    document.querySelectorAll('.multi-well-chart-wrapper').forEach(wrapper => {
+        wrapper.style.backgroundColor = isDark ? '#2b2b2b' : '#fff';
+        wrapper.style.border = isDark ? '1px solid #444' : '1px solid #ddd';
+        
+        const header = wrapper.querySelector('div[style*="border-bottom"]');
+        if (header) header.style.borderBottom = isDark ? '1px solid #444' : '1px solid #eee';
+        
+        const title = wrapper.querySelector('span[style*="font-weight: bold"]');
+        if (title) title.style.color = isDark ? '#eee' : '#333';
+
+        const canvas = wrapper.querySelector('canvas');
+        if (canvas && canvas._chartInstance) {
+            applyTheme(canvas._chartInstance);
+        }
+    });
 }
 
 function updateTableTheme() {
@@ -4897,85 +6441,294 @@ function saveExtraChartsState() {
             axisPosition: chart.options.scales[ds.yAxisID]?.position,
             hidden: !chart.isDatasetVisible(i) // Save visibility state
         }));
+        
+        const pane = ec.container.closest('.dashboard-tab-pane');
+        const tabId = pane ? pane.id.replace('dashboard-tab-', '') : 'main';
+
         return {
             id: ec.container.id,
             items: items,
-            isInlineLegend: chart.options.plugins.inlineLegend?.enabled || false
+            isInlineLegend: chart.options.plugins.inlineLegend?.enabled || false,
+            tabId: tabId
         };
     });
+
+    // Save Tabs
+    const tabs = [];
+    document.querySelectorAll('.dashboard-tab').forEach(el => {
+        if (el.id !== 'add-dashboard-tab-btn') {
+            // Get text from the first span (name), fallback to textContent if structure is different
+            const nameSpan = el.querySelector('span');
+            let name = nameSpan ? nameSpan.textContent : el.textContent;
+            // Clean up if it accidentally grabbed the close button text (though querySelector('span') gets the first one)
+            // If structure is flat text (legacy), textContent is fine.
+            
+            tabs.push({
+                id: el.dataset.tab,
+                name: name
+            });
+        }
+    });
+    chartPreferences.dashboardTabs = tabs;
 }
 
 function syncCharts(sourceChart) {
-    if (!chartPreferences.isSyncEnabled) return;
+    // Check per-chart sync state if available, otherwise fallback to global preference (for backward compatibility)
+    const isSourceSynced = (typeof sourceChart._isSyncEnabled !== 'undefined') ? sourceChart._isSyncEnabled : chartPreferences.isSyncEnabled;
+    
+    if (!isSourceSynced) return;
+
     const min = sourceChart.scales.x.min;
     const max = sourceChart.scales.x.max;
     
-    // Sync production chart if it's not the source
-    if (productionChart && productionChart !== sourceChart) {
-        productionChart.options.scales.x.min = min;
-        productionChart.options.scales.x.max = max;
-        productionChart.update('none');
-    }
+    const allCharts = [];
+    if (window.productionChart) allCharts.push(window.productionChart);
+    if (window.extraCharts) window.extraCharts.forEach(ec => { if(ec.chart) allCharts.push(ec.chart); });
     
-    // Sync extra charts
-    extraCharts.forEach(ec => {
-        if (ec.chart !== sourceChart) {
-            ec.chart.options.scales.x.min = min;
-            ec.chart.options.scales.x.max = max;
-            ec.chart.update('none');
+    // Add multi-view charts
+    document.querySelectorAll('.multi-well-chart-wrapper canvas').forEach(canvas => {
+        if (canvas._chartInstance) allCharts.push(canvas._chartInstance);
+    });
+
+    allCharts.forEach(chart => {
+        if (chart !== sourceChart) {
+            // Check target sync state
+            const isTargetSynced = (typeof chart._isSyncEnabled !== 'undefined') ? chart._isSyncEnabled : chartPreferences.isSyncEnabled;
+            
+            if (isTargetSynced) {
+                chart.options.scales.x.min = min;
+                chart.options.scales.x.max = max;
+                chart.update('none');
+            }
         }
     });
 }
 
-async function showWellDetails(wellId) {
+async function showWellDetails(wellId, options = {}) {
+    console.log("showWellDetails called with:", wellId, "isSubChart:", options.isSubChart);
+
+    // NEW: Handle Multi-Select
+    if (Array.isArray(wellId)) {
+        details_sidebar.show();
+        const titleEl = document.getElementById('details-well-name');
+        if (titleEl) titleEl.textContent = wellId.join(', ');
+        
+        // Clear main controls
+        const controlsEl = document.getElementById('details-controls');
+        if (controlsEl) controlsEl.innerHTML = '';
+        
+        // Hide main chart container
+        const mainChartContainer = document.getElementById('details-chart-container');
+        if (mainChartContainer) mainChartContainer.style.display = 'none';
+        
+        // Clear extra charts area and use it for the list
+        const extraArea = document.getElementById('extra-charts-area');
+        if (extraArea) {
+            extraArea.innerHTML = '';
+            extraArea.style.display = 'flex'; // Use flex for spacing
+            extraArea.style.flexDirection = 'column';
+            extraArea.style.gap = '20px';
+            extraArea.style.width = '100%';
+            extraArea.style.paddingBottom = '20px'; // Add padding at bottom
+        } else {
+            console.error("extra-charts-area not found!");
+        }
+        
+        // Clear global chart if exists
+        if (window.productionChart) {
+            if (typeof window.productionChart.destroy === 'function') {
+                try { window.productionChart.destroy(); } catch(e) { console.warn("Error destroying window.productionChart", e); }
+            }
+            window.productionChart = null;
+        }
+        if (typeof productionChart !== 'undefined' && productionChart) {
+            if (typeof productionChart.destroy === 'function') {
+                try { productionChart.destroy(); } catch(e) { console.warn("Error destroying productionChart", e); }
+            }
+            productionChart = null;
+        }
+
+        // NEW: Clear extraCharts array to prevent interference from previous single-well view
+        extraCharts = [];
+
+        const isDark = document.body.classList.contains('dark-theme');
+
+        for (const id of wellId) {
+            console.log("Creating wrapper for well:", id);
+            const wrapper = document.createElement('div');
+            wrapper.className = 'multi-well-chart-wrapper';
+            wrapper.style.border = isDark ? '1px solid #444' : '1px solid #ddd';
+            wrapper.style.padding = '10px';
+            wrapper.style.borderRadius = '4px';
+            wrapper.style.background = isDark ? '#2b2b2b' : 'white';
+            wrapper.style.minHeight = '300px';
+            wrapper.style.display = 'flex';
+            wrapper.style.flexDirection = 'column';
+            wrapper.style.flexShrink = '0'; // Prevent shrinking
+            
+            const header = document.createElement('div');
+            header.style.display = 'flex';
+            header.style.justifyContent = 'space-between';
+            header.style.alignItems = 'center';
+            header.style.marginBottom = '10px';
+            header.style.borderBottom = isDark ? '1px solid #444' : '1px solid #eee';
+            header.style.paddingBottom = '5px';
+            
+            const title = document.createElement('span');
+            title.style.fontWeight = 'bold';
+            title.style.fontSize = '16px'; // Bigger font size
+            title.style.color = isDark ? '#eee' : '#333';
+            title.textContent = id;
+            header.appendChild(title);
+
+            const localControls = document.createElement('div');
+            localControls.className = 'local-controls';
+            localControls.style.display = 'flex';
+            localControls.style.gap = '5px';
+            localControls.style.alignItems = 'center';
+
+            header.appendChild(localControls);
+
+            wrapper.appendChild(header);
+            
+            const canvasContainer = document.createElement('div');
+            canvasContainer.style.position = 'relative';
+            canvasContainer.style.flex = '1';
+            canvasContainer.style.minHeight = '250px';
+            canvasContainer.style.width = '100%';
+            
+            const canvas = document.createElement('canvas');
+            // Explicitly set style to avoid collapse
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.display = 'block';
+            canvasContainer.appendChild(canvas);
+
+            // NEW: Time Config Button (Floating in Bottom Left)
+            const timeBtn = document.createElement('button');
+            timeBtn.className = 'chart-action-btn';
+            timeBtn.innerHTML = 'Time ⚙';
+            timeBtn.title = 'Configure Time Axis';
+            timeBtn.style.position = 'absolute';
+            timeBtn.style.bottom = '4px';
+            timeBtn.style.left = '4px'; // Bottom Left
+            timeBtn.style.zIndex = '10';
+            timeBtn.style.fontSize = '11px';
+            timeBtn.style.padding = '2px 6px';
+            timeBtn.onclick = (e) => {
+                e.stopPropagation(); // Prevent other click events
+                const chart = canvas._chartInstance;
+                if (chart) showAxisConfig(chart, 'x', e);
+            };
+            canvasContainer.appendChild(timeBtn);
+
+            wrapper.appendChild(canvasContainer);
+            
+            if (extraArea) extraArea.appendChild(wrapper);
+            
+            // Call recursively with error handling
+            // Use setTimeout to allow DOM to update
+            setTimeout(() => {
+                showWellDetails(id, { 
+                    canvasElement: canvas, 
+                    isSubChart: true,
+                    container: canvasContainer, // Use canvasContainer for chart elements (tags, drawers)
+                    localControls: localControls
+                }).catch(err => {
+                    console.error(`Error loading well ${id}:`, err);
+                    canvasContainer.innerHTML = `<div style="color:red; padding:20px; text-align:center;">Error loading data for ${id}</div>`;
+                });
+            }, 0);
+        }
+        return;
+    }
+
     let wellMarkers = []; // Reset markers for new well
-    details_sidebar.show();
+    if (!options.isSubChart) {
+        details_sidebar.show();
+        const mainChartContainer = document.getElementById('details-chart-container');
+        if (mainChartContainer) mainChartContainer.style.display = 'block';
+    }
     
     const placeholder = document.getElementById('chart-placeholder');
     if (placeholder) placeholder.style.display = 'none';
     
     const titleEl = document.getElementById('details-well-name');
-    const controlsEl = document.getElementById('details-controls');
+    const controlsEl = options.localControls || document.getElementById('details-controls');
     const loadingEl = document.getElementById('details-loading');
     const errorEl = document.getElementById('details-error');
-    const canvas = document.getElementById('productionChart');
+    const canvas = options.canvasElement || document.getElementById('productionChart');
     
+    // Fix for single chart visibility
+    if (!options.isSubChart && canvas) {
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.display = 'block';
+    }
+
     // NEW: Context Menu Listener
     canvas.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         e.stopPropagation();
         window.closeAllChartMenus();
-        if (!productionChart) return;
+        
+        const chartInstance = canvas._chartInstance || window.productionChart;
+        if (!chartInstance) return;
+        
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
-        const xValue = productionChart.scales.x.getValueForPixel(x);
+        const xValue = chartInstance.scales.x.getValueForPixel(x);
         
-        activeChartContext = { chart: productionChart, xValue };
+        activeChartContext = { chart: chartInstance, xValue };
         
         ctxMenu.style.left = `${e.clientX}px`;
         ctxMenu.style.top = `${e.clientY}px`;
         ctxMenu.style.display = 'block';
     });
     
-    titleEl.textContent = `Well: ${wellId}`;
-    controlsEl.innerHTML = ''; // Clear previous controls
+        if (!options.isSubChart) {
+            titleEl.textContent = `Well: ${wellId}`;
+            controlsEl.innerHTML = ''; // Clear previous controls
+            
+            loadingEl.style.display = 'block';
+            errorEl.style.display = 'none';
+            
+            // Clear previous chart
+            if (productionChart) {
+                productionChart.destroy();
+                productionChart = null;
+            }
     
-    loadingEl.style.display = 'block';
-    errorEl.style.display = 'none';
-    
-    // Clear previous chart
-    if (productionChart) {
-        productionChart.destroy();
-        productionChart = null;
-    }
-
-    // Clear extra charts
-    extraCharts.forEach(item => {
-        if (item.chart) item.chart.destroy();
-        if (item.container) item.container.remove();
-    });
-    extraCharts = [];
-    document.getElementById('extra-charts-area').innerHTML = '';
+            // Clear extra charts
+            extraCharts.forEach(item => {
+                if (item.chart) item.chart.destroy();
+                if (item.container) item.container.remove();
+            });
+            extraCharts = [];
+            document.getElementById('extra-charts-area').innerHTML = '';
+        } else {
+            // For sub-charts, show local loading
+            if (options.container) {
+                let loader = options.container.querySelector('.local-loader');
+                if (!loader) {
+                    loader = document.createElement('div');
+                    loader.className = 'local-loader';
+                    loader.textContent = 'Loading...';
+                    loader.style.position = 'absolute';
+                    loader.style.top = '50%';
+                    loader.style.left = '50%';
+                    loader.style.transform = 'translate(-50%, -50%)';
+                    loader.style.background = 'rgba(255,255,255,0.8)';
+                    loader.style.padding = '5px';
+                    options.container.style.position = 'relative';
+                    options.container.appendChild(loader);
+                }
+            }
+            // Ensure local controls are empty before adding new ones
+            if (options.localControls) {
+                options.localControls.innerHTML = '';
+            }
+        }
 
     // Wait for Chart.js and plugins to load
     const waitForChart = async () => {
@@ -5001,6 +6754,10 @@ async function showWellDetails(wellId) {
         const data = await res.json();
         
         loadingEl.style.display = 'none';
+        if (options.container) {
+            const loader = options.container.querySelector('.local-loader');
+            if (loader) loader.remove();
+        }
 
         // Apply user formulas to the fetched well data
         if (typeof userFormulas !== 'undefined' && userFormulas.length > 0 && data.length > 0) {
@@ -5165,8 +6922,8 @@ async function showWellDetails(wellId) {
         // NEW: Align Button in Header (controlsEl)
         const alignBtn = document.createElement('button');
         alignBtn.className = 'chart-header-btn';
-        alignBtn.innerHTML = '<span style="font-size:14px; font-weight:bold;">↔</span> Align X Axes';
-        alignBtn.title = 'Sync all plots to the main chart\'s time range';
+        alignBtn.innerHTML = '<span style="font-size:14px; font-weight:bold;">↔</span> Align Others to This';
+        alignBtn.title = 'Align all other charts to this chart\'s time range';
         alignBtn.style.padding = '4px 10px';
         alignBtn.style.cursor = 'pointer';
         alignBtn.style.borderRadius = '4px';
@@ -5176,72 +6933,28 @@ async function showWellDetails(wellId) {
         alignBtn.style.gap = '6px';
 
         alignBtn.onclick = () => {
-            if (!productionChart) return;
+            const sourceChart = options.isSubChart ? canvas._chartInstance : productionChart;
+            if (!sourceChart) return;
+
+            const allCharts = [];
+            if (window.productionChart) allCharts.push(window.productionChart);
+            if (window.extraCharts) window.extraCharts.forEach(ec => { if(ec.chart) allCharts.push(ec.chart); });
+            document.querySelectorAll('.multi-well-chart-wrapper canvas').forEach(canvas => {
+                if (canvas._chartInstance) allCharts.push(canvas._chartInstance);
+            });
             
-            const allCharts = [productionChart, ...extraCharts.map(ec => ec.chart)];
-
-            // Check if already in selection mode
-            if (alignBtn.dataset.selecting === 'true') {
-                // Cancel selection
-                if (alignBtn._alignHandler) {
-                    allCharts.forEach(chart => {
-                        chart.canvas.removeEventListener('click', alignBtn._alignHandler);
-                        chart.canvas.style.cursor = '';
-                    });
-                }
-                alignBtn.dataset.selecting = 'false';
-                alignBtn.innerHTML = alignBtn._originalHTML || '<span style="font-size:14px; font-weight:bold;">↔</span> Align X Axes';
-                alignBtn.style.background = '';
-                alignBtn.style.color = '';
-                alignBtn.style.borderColor = '';
-                alignBtn._alignHandler = null;
-                return;
-            }
+            const targetMin = sourceChart.scales.x.min;
+            const targetMax = sourceChart.scales.x.max;
             
-            // Enter selection mode
-            alignBtn.dataset.selecting = 'true';
-            alignBtn._originalHTML = alignBtn.innerHTML;
-            alignBtn.innerHTML = 'Select a plot to align others... (Click to cancel)';
-            alignBtn.style.background = '#fff3cd';
-            alignBtn.style.color = '#856404';
-            alignBtn.style.borderColor = '#ffeeba';
-
-            const onChartClick = (e) => {
-                const clickedCanvas = e.target;
-                const refChart = allCharts.find(c => c.canvas === clickedCanvas);
-                
-                if (refChart) {
-                    const targetMin = refChart.scales.x.min;
-                    const targetMax = refChart.scales.x.max;
-                    
-                    allCharts.forEach(chart => {
-                        chart.options.scales.x.min = targetMin;
-                        chart.options.scales.x.max = targetMax;
-                        chart.update();
-                        // Update zoom controls if needed
-                        const wrapper = chart.canvas.parentElement;
-                        if (wrapper) ZoomControlManager.create(chart, wrapper);
-                    });
-                }
-                
-                // Cleanup
-                allCharts.forEach(chart => {
-                    chart.canvas.removeEventListener('click', onChartClick);
-                    chart.canvas.style.cursor = '';
-                });
-                alignBtn.dataset.selecting = 'false';
-                alignBtn.innerHTML = alignBtn._originalHTML;
-                alignBtn.style.background = '';
-                alignBtn.style.color = '';
-                alignBtn.style.borderColor = '';
-                alignBtn._alignHandler = null;
-            };
-
-            alignBtn._alignHandler = onChartClick;
-
             allCharts.forEach(chart => {
-                chart.canvas.addEventListener('click', onChartClick);
-                chart.canvas.style.cursor = 'crosshair';
+                if (chart !== sourceChart) {
+                    chart.options.scales.x.min = targetMin;
+                    chart.options.scales.x.max = targetMax;
+                    chart.update();
+                    // Update zoom controls if needed
+                    const wrapper = chart.canvas.parentElement;
+                    if (wrapper) ZoomControlManager.create(chart, wrapper);
+                }
             });
         };
         
@@ -5251,14 +6964,30 @@ async function showWellDetails(wellId) {
         const syncBtn = document.createElement('button');
         syncBtn.className = 'chart-header-btn';
         
+        // Initialize per-chart sync state if not present
+        const currentChart = options.isSubChart ? canvas._chartInstance : productionChart;
+        // Note: currentChart might be null here if not yet created, but we are inside showWellDetails where chart creation happens later or earlier?
+        // Wait, showWellDetails calls updateChart() at the end which creates the chart.
+        // But we are creating buttons BEFORE chart creation in the code flow?
+        // Actually, showWellDetails creates DOM elements first, then fetches data, then calls updateChart().
+        // So canvas._chartInstance is NOT set yet when this code runs for the first time.
+        // We need to store the state on the button or a closure variable, and apply it to the chart when created.
+        
+        let isSyncEnabled = false; // Default to OFF per user request implication
+
         const updateSyncBtn = () => {
-            const isEnabled = chartPreferences.isSyncEnabled;
-            syncBtn.innerHTML = `Sync Pan: ${isEnabled ? 'ON' : 'OFF'}`;
-            if (isEnabled) syncBtn.classList.add('active');
+            syncBtn.innerHTML = `Sync Pan: ${isSyncEnabled ? 'ON' : 'OFF'}`;
+            if (isSyncEnabled) syncBtn.classList.add('active');
             else syncBtn.classList.remove('active');
+            
+            // Apply to chart if it exists
+            const chart = options.isSubChart ? canvas._chartInstance : productionChart;
+            if (chart) {
+                chart._isSyncEnabled = isSyncEnabled;
+            }
         };
         
-        syncBtn.title = 'Automatically sync panning across all plots';
+        syncBtn.title = 'Toggle synchronization for this chart';
         syncBtn.style.padding = '4px 10px';
         syncBtn.style.cursor = 'pointer';
         syncBtn.style.borderRadius = '4px';
@@ -5271,57 +7000,61 @@ async function showWellDetails(wellId) {
         updateSyncBtn();
 
         syncBtn.onclick = () => {
-            chartPreferences.isSyncEnabled = !chartPreferences.isSyncEnabled;
+            isSyncEnabled = !isSyncEnabled;
             updateSyncBtn();
         };
         
+        // Hook into chart creation to set initial state
+        // We can do this by modifying the updateChart function or using a periodic check, 
+        // but since we are in the scope where updateChart is defined later, we can modify it?
+        // Actually, updateChart is defined inside showWellDetails.
+        // We can add a hook there.
+        
         controlsEl.appendChild(syncBtn);
+
+        // NEW: Full View Button (Added to Header)
+        const fullBtn = document.createElement('button');
+        fullBtn.className = 'chart-header-btn';
+        fullBtn.innerHTML = '⤢ Full View';
+        fullBtn.title = 'Open Full View';
+        fullBtn.style.padding = '4px 10px';
+        fullBtn.style.cursor = 'pointer';
+        fullBtn.style.borderRadius = '4px';
+        fullBtn.style.fontSize = '12px';
+        fullBtn.style.marginLeft = '5px';
+        fullBtn.onclick = () => {
+            const chart = options.isSubChart ? canvas._chartInstance : productionChart;
+            if (chart) openFullViewChart(chart, wellId);
+        };
+        controlsEl.appendChild(fullBtn);
+
+        // NEW: Settings Button (Added to Header)
+        const settingsBtn = document.createElement('button');
+        settingsBtn.className = 'chart-header-btn';
+        settingsBtn.innerHTML = '⚙';
+        settingsBtn.title = 'Chart Settings';
+        settingsBtn.style.padding = '4px 10px';
+        settingsBtn.style.cursor = 'pointer';
+        settingsBtn.style.borderRadius = '4px';
+        settingsBtn.style.fontSize = '12px';
+        settingsBtn.style.marginLeft = '5px';
+        settingsBtn.onclick = (e) => {
+            const chart = options.isSubChart ? canvas._chartInstance : productionChart;
+            if (chart) showChartSettings(e, chart, valueKeys);
+        };
+        controlsEl.appendChild(settingsBtn);
 
         // Remove existing toolbar if any
         const existingToolbar = chartContainer.querySelector('.main-chart-toolbar');
         if (existingToolbar) existingToolbar.remove();
 
-        const toolbar = document.createElement('div');
-        toolbar.className = 'main-chart-toolbar';
-        toolbar.style.position = 'absolute';
-        toolbar.style.top = '2px';
-        toolbar.style.right = '2px';
-        toolbar.style.zIndex = '10';
-        toolbar.style.display = 'flex';
-        toolbar.style.gap = '4px';
-        toolbar.style.alignItems = 'center';
+        /* Floating toolbar removed - controls moved to header
+        if (!options.isSubChart) {
+             // ...
+        }
+        */
         
         // Ensure container is relative
-        if (getComputedStyle(chartContainer).position === 'static') {
-            chartContainer.style.position = 'relative';
-        }
-
-        // Full View Button
-        const fullViewBtn = document.createElement('button');
-        fullViewBtn.className = 'chart-toolbar-btn';
-        fullViewBtn.innerHTML = '⤢';
-        fullViewBtn.title = 'Full View';
-        fullViewBtn.style.background = 'none';
-        fullViewBtn.style.border = 'none';
-        // fullViewBtn.style.color = themeTextColor; // Handled by CSS class
-        fullViewBtn.style.cursor = 'pointer';
-        fullViewBtn.style.fontSize = '14px';
-        fullViewBtn.onclick = () => openFullViewChart();
-        toolbar.appendChild(fullViewBtn);
-
-        // Settings Button
-        const settingsBtn = document.createElement('button');
-        settingsBtn.className = 'chart-toolbar-btn';
-        settingsBtn.innerHTML = '⚙';
-        settingsBtn.title = 'Chart Settings';
-        settingsBtn.style.background = 'none';
-        settingsBtn.style.border = 'none';
-        // settingsBtn.style.color = themeTextColor; // Handled by CSS class
-        settingsBtn.style.cursor = 'pointer';
-        settingsBtn.style.fontSize = '14px';
-        
-        toolbar.appendChild(settingsBtn);
-        chartContainer.appendChild(toolbar);
 
         // NEW: Left Axis Drawer
         const existingDrawer = chartContainer.querySelector('.axis-drawer-toggle');
@@ -5551,10 +7284,22 @@ async function showWellDetails(wellId) {
             return isNaN(date) ? d[dateKey] : date.toISOString().split('T')[0];
         });
 
+        // Restore Tabs
+        if (chartPreferences.dashboardTabs && chartPreferences.dashboardTabs.length > 0) {
+            chartPreferences.dashboardTabs.forEach(tab => {
+                if (tab.id !== 'main') {
+                    addDashboardTab(tab.id, tab.name, tab.color);
+                }
+            });
+        }
+
         // Restore extra charts
         if (chartPreferences.extraCharts && chartPreferences.extraCharts.length > 0) {
             chartPreferences.extraCharts.forEach(config => {
-                createExtraChart(config.items, null, config.id, { isInlineLegend: config.isInlineLegend });
+                createExtraChart(config.items, null, config.id, { 
+                    isInlineLegend: config.isInlineLegend,
+                    tabId: config.tabId 
+                });
             });
         }
 
@@ -5871,9 +7616,11 @@ async function showWellDetails(wellId) {
 
         // Assign click handler for Add Plot button
         const addPlotBtn = document.getElementById('add-plot-btn');
-        if (addPlotBtn) addPlotBtn.onclick = showAddPlotDialog;
+        if (addPlotBtn) addPlotBtn.onclick = () => showAddPlotDialog('main');
 
-        function showAddPlotDialog() {
+        window.showAddPlotDialog = showAddPlotDialog; // Make global
+
+        function showAddPlotDialog(targetTabId) {
             const isDark = document.body.classList.contains('dark-theme');
             
             // Create modal
@@ -6008,7 +7755,7 @@ async function showWellDetails(wellId) {
                 if (selected.length > 0) {
                     const id = 'chart-' + Date.now();
                     // chartPreferences.extraCharts.push({ id: id, items: selected }); // Removed as saveExtraChartsState will handle it
-                    createExtraChart(selected, null, id);
+                    createExtraChart(selected, null, id, { tabId: targetTabId });
                     saveExtraChartsState(); // Save state after adding new chart
                     document.body.removeChild(modal);
                 }
@@ -6131,7 +7878,10 @@ async function showWellDetails(wellId) {
 
 
         function createExtraChart(paramOrItems, label, savedId, options = {}) {
-            const container = document.getElementById('extra-charts-area');
+            const tabId = options.tabId || window._efsActiveDashboardTab || 'main';
+            const activePane = document.getElementById(`dashboard-tab-${tabId}`);
+            const container = activePane ? activePane.querySelector('.extra-charts-area') : document.getElementById('extra-charts-area');
+            
             const themeColors = getThemeColors();
             const isDark = document.body.classList.contains('dark-theme');
             
@@ -7024,7 +8774,7 @@ async function showWellDetails(wellId) {
 
         function updateChart() {
             const datasets = getChartData();
-            const chartContainer = document.getElementById('details-chart-container');
+            const chartContainer = options.container || document.getElementById('details-chart-container');
             const isInlineLegend = chartPreferences.isInlineLegend;
 
             // Update Extra Charts
@@ -7066,31 +8816,39 @@ async function showWellDetails(wellId) {
                 }
             }
 
-            if (productionChart) {
-                productionChart.data.datasets = datasets;
+            // NEW: Determine which chart to update/create
+            let currentChart = options.isSubChart ? canvas._chartInstance : productionChart;
+
+            if (currentChart) {
+                // Apply sync state if defined in closure
+                if (typeof isSyncEnabled !== 'undefined') {
+                    currentChart._isSyncEnabled = isSyncEnabled;
+                }
+                
+                currentChart.data.datasets = datasets;
                 
                 // Update scale colors
-                if (productionChart.options.scales['y-oil']) productionChart.options.scales['y-oil'].title.color = lineColors['orate'];
-                if (productionChart.options.scales['y-water']) productionChart.options.scales['y-water'].title.color = lineColors['wrate'];
-                if (productionChart.options.scales['y-gas']) productionChart.options.scales['y-gas'].title.color = lineColors['grate'];
+                if (currentChart.options.scales['y-oil']) currentChart.options.scales['y-oil'].title.color = lineColors['orate'];
+                if (currentChart.options.scales['y-water']) currentChart.options.scales['y-water'].title.color = lineColors['wrate'];
+                if (currentChart.options.scales['y-gas']) currentChart.options.scales['y-gas'].title.color = lineColors['grate'];
 
                 // Update Legend Mode
-                productionChart.options.plugins.legend.display = !isInlineLegend;
-                productionChart.options.plugins.inlineLegend = { enabled: isInlineLegend };
-                productionChart.options.layout.padding.right = isInlineLegend ? 80 : 0;
+                currentChart.options.plugins.legend.display = !isInlineLegend;
+                currentChart.options.plugins.inlineLegend = { enabled: isInlineLegend };
+                currentChart.options.layout.padding.right = isInlineLegend ? 80 : 0;
 
-                productionChart._markers = wellMarkers; // Sync markers
-                productionChart.update();
-                ZoomControlManager.create(productionChart, chartContainer); // Refresh controls
-                updateDrawerVisibility(productionChart, chartContainer); // Update drawers
-                updateChartTags(chartContainer, productionChart); // Update draggable tags
+                currentChart._markers = wellMarkers; // Sync markers
+                currentChart.update();
+                ZoomControlManager.create(currentChart, chartContainer); // Refresh controls
+                updateDrawerVisibility(currentChart, chartContainer); // Update drawers
+                updateChartTags(chartContainer, currentChart); // Update draggable tags
             } else {
                 // Remove existing controls
                 chartContainer.querySelectorAll('.axis-zoom-control').forEach(el => el.remove());
 
                 const themeColors = getThemeColors();
 
-                productionChart = new Chart(canvas, {
+                const newChart = new Chart(canvas, {
                     type: 'line',
                     plugins: [markerPlugin, cursorPlugin, axisHoverPlugin, selectionPlugin, inlineLegendPlugin], // Add plugin
                     data: {
@@ -7194,9 +8952,21 @@ async function showWellDetails(wellId) {
                         }
                     }
                 });
-                ZoomControlManager.create(productionChart, chartContainer);
-                updateDrawerVisibility(productionChart, chartContainer); // Update drawers
-                updateChartTags(chartContainer, productionChart); // Update draggable tags
+                
+                // NEW: Assign to canvas and global if needed
+                canvas._chartInstance = newChart;
+                if (!options.isSubChart) {
+                    productionChart = newChart;
+                }
+                
+                // Apply sync state if defined in closure
+                if (typeof isSyncEnabled !== 'undefined') {
+                    newChart._isSyncEnabled = isSyncEnabled;
+                }
+
+                ZoomControlManager.create(newChart, chartContainer);
+                updateDrawerVisibility(newChart, chartContainer); // Update drawers
+                updateChartTags(chartContainer, newChart); // Update draggable tags
             }
         }
 
@@ -7514,18 +9284,50 @@ function createStatusColorResolver(overrides) {
 	return { resolve: resolver, palette, defaultColor };
 }
 
-// Helper for Injector Wells (Upside Down Triangle)
-function createTriangleMarker(latlng, options) {
+// Helper for Custom Markers (Circle, Triangle, Square, Diamond)
+function createCustomMarker(latlng, shape, options) {
     const color = options.color || '#3388ff';
-    const size = (options.radius || 4) * 3.5; // Scale up for visibility
+    const radius = options.radius || 4;
+
+    if (shape === 'circle') {
+        return L.circleMarker(latlng, {
+            bubblingMouseEvents: true,
+            color: color,
+            fill: true,
+            fillColor: color,
+            fillOpacity: 1.0,
+            fillRule: "evenodd",
+            lineCap: "round",
+            lineJoin: "round",
+            opacity: 1.0,
+            radius: radius,
+            weight: 1,
+            stroke: true,
+            ...options
+        });
+    }
+
+    const size = radius * 3.5; // Scale up for visibility
+    let svgPath = "";
     
-    // Upside down triangle SVG
+    if (shape === 'triangle') {
+        // Upside down triangle
+        svgPath = "M2 2 L22 2 L12 22 Z";
+    } else if (shape === 'square') {
+        svgPath = "M4 4 H20 V20 H4 Z";
+    } else if (shape === 'diamond') {
+        svgPath = "M12 2 L22 12 L12 22 L2 12 Z";
+    } else {
+        // Default to triangle if unknown
+        svgPath = "M2 2 L22 2 L12 22 Z";
+    }
+    
     const svg = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="overflow: visible; display: block;">
-        <path d="M2 2 L22 2 L12 22 Z" fill="${color}" stroke="${color}" stroke-width="2" stroke-linejoin="round" />
+        <path d="${svgPath}" fill="${color}" stroke="${color}" stroke-width="2" stroke-linejoin="round" />
     </svg>`;
 
     const icon = L.divIcon({
-        className: 'custom-triangle-icon',
+        className: `custom-${shape}-icon`,
         html: svg,
         iconSize: [size, size],
         iconAnchor: [size/2, size/2]
@@ -7541,11 +9343,11 @@ function createTriangleMarker(latlng, options) {
             this.options.fillColor = newColor;
             
             const newSvg = `<svg width="${size}" height="${size}" viewBox="0 0 24 24" style="overflow: visible; display: block;">
-                <path d="M2 2 L22 2 L12 22 Z" fill="${newColor}" stroke="${newColor}" stroke-width="2" stroke-linejoin="round" />
+                <path d="${svgPath}" fill="${newColor}" stroke="${newColor}" stroke-width="2" stroke-linejoin="round" />
             </svg>`;
             
             this.setIcon(L.divIcon({
-                className: 'custom-triangle-icon',
+                className: `custom-${shape}-icon`,
                 html: newSvg,
                 iconSize: [size, size],
                 iconAnchor: [size/2, size/2]
@@ -7562,41 +9364,70 @@ function populateWellPointFeatureGroup(wells, group, statusColorFn, registry) {
 		registry.clear();
 	}
 
+    // NEW: Clear existing layers in the group to prevent stacking
+    if (group && typeof group.clearLayers === "function") {
+        group.clearLayers();
+    }
+
+    // NEW: Clear visibility cache as we are creating new markers
+    if (window._efsWellMarkerCache) {
+        window._efsWellMarkerCache.clear();
+    }
+
 	wells.forEach(w => {
 		const wellName = norm(w.well);
 		if (!wellName) return;
 
+        // Check if well is selected
+        const isSelected = window._efsActiveWells && window._efsActiveWells.some(aw => String(aw).toLowerCase() === String(wellName).toLowerCase());
+
 		const baseColor = typeof statusColorFn === "function" ? statusColorFn(w.status, w) : null;
-		const initialColor = markerColorState.activeColumn ? resolveMarkerColorForRow(w) : (baseColor || resolveMarkerColorForRow(w));
+		let initialColor = markerColorState.activeColumn ? resolveMarkerColorForRow(w) : (baseColor || resolveMarkerColorForRow(w));
+		
+        // Override color if selected
+        if (isSelected) {
+            initialColor = 'purple';
+        }
+
 		const colorToUse = initialColor || markerColorState.baseDefault || DEFAULT_STATUS_COLOR;
 
         let marker;
-        // Check for Injector (Upside Down Triangle) vs Producer (Circle)
-        if (w.otype && /inject/i.test(w.otype)) {
-            marker = createTriangleMarker([w.lat, w.lon], {
-                color: colorToUse,
-                fillColor: colorToUse,
+        
+        const otypeKey = w.otype ? w.otype.toLowerCase() : null;
+        let customStyle = (window._efsOtypeStyles && otypeKey && window._efsOtypeStyles[otypeKey]) 
+                            ? window._efsOtypeStyles[otypeKey] 
+                            : null;
+        
+        // Override custom style color if selected
+        if (isSelected && customStyle) {
+            customStyle = { ...customStyle, color: 'purple' };
+        }
+
+        if (customStyle) {
+             marker = createCustomMarker([w.lat, w.lon], customStyle.shape, {
+                color: customStyle.color || colorToUse,
+                fillColor: customStyle.color || colorToUse,
                 fillOpacity: 1.0,
                 radius: 4
             });
         } else {
-            // Default to Circle (Producer)
-            marker = L.circleMarker([w.lat, w.lon], {
-                bubblingMouseEvents: true,
-                color: colorToUse,
-                dashArray: null,
-                dashOffset: null,
-                fill: true,
-                fillColor: colorToUse,
-                fillOpacity: 1.,
-                fillRule: "evenodd",
-                lineCap: "round",
-                lineJoin: "round",
-                opacity: 1.0,
-                radius: 4,
-                weight: 1,
-                stroke: true,		
-            });
+            // Check for Injector (Upside Down Triangle) vs Producer (Circle)
+            if (w.otype && /inject/i.test(w.otype)) {
+                marker = createCustomMarker([w.lat, w.lon], 'triangle', {
+                    color: colorToUse,
+                    fillColor: colorToUse,
+                    fillOpacity: 1.0,
+                    radius: 4
+                });
+            } else {
+                // Default to Circle (Producer)
+                marker = createCustomMarker([w.lat, w.lon], 'circle', {
+                    color: colorToUse,
+                    fillColor: colorToUse,
+                    fillOpacity: 1.0,
+                    radius: 4
+                });
+            }
         }
 
 		marker.on('click', () => showWellDetails(wellName)) // NEW: Open details on click
@@ -7731,6 +9562,244 @@ function isGeometryColumnName(name) {
 	const tokens = normalized.split(/[^a-z0-9]+/).filter(Boolean);
 	if (!tokens.length) return false;
 	return tokens.some(token => GEOMETRY_COLUMN_TOKENS.has(token));
+}
+
+function showOtypeSettings(otype, event) {
+    // Remove existing popup
+    const existing = document.getElementById('otype-settings-popup');
+    if (existing) existing.remove();
+
+    // Create container
+    const popup = document.createElement('div');
+    popup.id = 'otype-settings-popup';
+    
+    // Calculate position (prevent overflow)
+    // Assuming a width of ~250px and height of ~200px
+    const x = Math.min(event.clientX, window.innerWidth - 260); 
+    const y = Math.min(event.clientY, window.innerHeight - 220);
+
+    popup.style.cssText = `
+        position: absolute;
+        left: ${x}px;
+        top: ${y}px;
+        z-index: 10000;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    `;
+
+    // Internal styles
+    const styles = `
+        <style>
+            .otype-card {
+                background: var(--bg-color, #ffffff);
+                border: 1px solid var(--border-color, #e1e4e8);
+                border-radius: 6px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+                width: 240px;
+                overflow: hidden;
+                color: var(--text-color, #24292e);
+                animation: otype-fade-in 0.2s ease-out;
+            }
+            .otype-header {
+                background: var(--header-bg, #f6f8fa);
+                padding: 8px 12px;
+                border-bottom: 1px solid var(--border-color, #e1e4e8);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .otype-title {
+                font-weight: 600;
+                font-size: 12px;
+                margin: 0;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: #586069;
+            }
+            .otype-close {
+                cursor: pointer;
+                color: #586069;
+                font-size: 16px;
+                line-height: 1;
+            }
+            .otype-close:hover { color: #24292e; }
+            .otype-body {
+                padding: 12px;
+            }
+            .otype-control-group {
+                margin-bottom: 12px;
+            }
+            .otype-label {
+                display: block;
+                font-size: 12px;
+                font-weight: 600;
+                margin-bottom: 4px;
+                color: var(--text-color, #24292e);
+            }
+            .otype-select {
+                width: 100%;
+                padding: 4px 8px;
+                border: 1px solid #d1d5da;
+                border-radius: 4px;
+                background-color: var(--bg-color, #fff);
+                color: var(--text-color, #24292e);
+                font-size: 13px;
+            }
+            .otype-color-wrapper {
+                display: flex;
+                align-items: center;
+                border: 1px solid #d1d5da;
+                border-radius: 4px;
+                padding: 4px;
+                background: var(--bg-color, #fff);
+            }
+            .otype-color-input {
+                border: none;
+                width: 24px;
+                height: 24px;
+                padding: 0;
+                margin-right: 8px;
+                cursor: pointer;
+                background: none;
+            }
+            .otype-color-text {
+                font-size: 12px;
+                font-family: monospace;
+                color: #586069;
+            }
+            .otype-footer {
+                padding: 8px 12px;
+                background: var(--bg-color, #ffffff);
+                border-top: 1px solid var(--border-color, #e1e4e8);
+                display: flex;
+                justify-content: flex-end;
+                gap: 8px;
+            }
+            .otype-btn {
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: pointer;
+                border: 1px solid rgba(27,31,35,0.15);
+                transition: 0.2s;
+            }
+            .otype-btn-cancel {
+                background-color: #fafbfc;
+                color: #24292e;
+            }
+            .otype-btn-cancel:hover { background-color: #f3f4f6; }
+            .otype-btn-apply {
+                background-color: #2ea44f;
+                color: white;
+                border: 1px solid rgba(27,31,35,0.15);
+            }
+            .otype-btn-apply:hover { background-color: #2c974b; }
+            @keyframes otype-fade-in {
+                from { opacity: 0; transform: translateY(-4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        </style>
+    `;
+
+    popup.innerHTML = styles + `
+        <div class="otype-card">
+            <div class="otype-header">
+                <h3 class="otype-title">${otype}</h3>
+                <span class="otype-close">&times;</span>
+            </div>
+            <div class="otype-body">
+                <div class="otype-control-group">
+                    <label class="otype-label">Marker Shape</label>
+                    <select id="otype-shape-select" class="otype-select">
+                        <option value="circle">Circle</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="square">Square</option>
+                        <option value="diamond">Diamond</option>
+                    </select>
+                </div>
+                <div class="otype-control-group" style="margin-bottom: 0;">
+                    <label class="otype-label">Marker Color</label>
+                    <div class="otype-color-wrapper">
+                        <input type="color" id="otype-color-input" class="otype-color-input">
+                        <span id="otype-color-hex" class="otype-color-text">#000000</span>
+                    </div>
+                </div>
+            </div>
+            <div class="otype-footer">
+                <button class="otype-btn otype-btn-cancel">Cancel</button>
+                <button class="otype-btn otype-btn-apply">Apply</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    // Logic
+    const closeBtn = popup.querySelector('.otype-close');
+    const cancelBtn = popup.querySelector('.otype-btn-cancel');
+    const applyBtn = popup.querySelector('.otype-btn-apply');
+    const shapeSelect = document.getElementById('otype-shape-select');
+    const colorInput = document.getElementById('otype-color-input');
+    const colorHex = document.getElementById('otype-color-hex');
+
+    // Load current settings
+    const otypeKey = otype.toLowerCase();
+    if (!window._efsOtypeStyles) window._efsOtypeStyles = {};
+    const currentStyle = window._efsOtypeStyles[otypeKey];
+    
+    // Defaults
+    let defaultShape = 'circle';
+    let defaultColor = '#3388ff';
+    if (/inject/i.test(otype)) {
+        defaultShape = 'triangle';
+    }
+
+    shapeSelect.value = currentStyle?.shape || defaultShape;
+    colorInput.value = currentStyle?.color || defaultColor;
+    colorHex.textContent = colorInput.value;
+
+    // Event Listeners
+    colorInput.addEventListener('input', (e) => {
+        colorHex.textContent = e.target.value;
+    });
+
+    const close = () => popup.remove();
+
+    closeBtn.onclick = close;
+    cancelBtn.onclick = close;
+
+    applyBtn.onclick = () => {
+        window._efsOtypeStyles[otypeKey] = {
+            shape: shapeSelect.value,
+            color: colorInput.value
+        };
+        
+        // Trigger re-render
+        if (window._efsDataset && window._efsWellLayer && window._efsDataset.wells) {
+             populateWellPointFeatureGroup(
+                 window._efsDataset.wells, 
+                 window._efsWellLayer, 
+                 window._efsStatusColors ? window._efsStatusColors.resolve : null, 
+                 window._efsMarkersByWell || markersByWell
+             );
+             // Re-apply visibility filters if needed
+             if (typeof window.applyWellVisibilityFilters === "function") {
+                window.applyWellVisibilityFilters();
+             }
+        }
+        close();
+    };
+
+    // Click outside to close
+    setTimeout(() => {
+        const clickOutside = (e) => {
+            if (!popup.contains(e.target)) {
+                close();
+                document.removeEventListener('click', clickOutside);
+            }
+        };
+        document.addEventListener('click', clickOutside);
+    }, 10);
 }
 
 function buildFilterControls(wells, types) {
@@ -7948,6 +10017,25 @@ function buildFilterControls(wells, types) {
                 }
 
 				row.appendChild(txt);
+
+                // NEW: Add settings button for Otype
+                if (c.toLowerCase() === 'otype') {
+                    const settingsBtn = document.createElement("span");
+                    settingsBtn.innerHTML = "⚙";
+                    settingsBtn.className = "efs-settings-btn";
+                    settingsBtn.style.marginLeft = "5px";
+                    settingsBtn.style.cursor = "pointer";
+                    settingsBtn.style.fontSize = "14px";
+                    settingsBtn.title = "Configure Marker Style";
+                    
+                    settingsBtn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showOtypeSettings(valKey, e);
+                    };
+                    row.appendChild(settingsBtn);
+                }
+
 				row.appendChild(cnt);
 
 				listEl.appendChild(row);
@@ -8332,7 +10420,7 @@ function buildFilterControls(wells, types) {
 }
 
 // Helper for custom searchable dropdown
-function createSearchableDropdown(container, optionsList, initialValue, onSelect, placeholderText) {
+function createSearchableDropdown(container, optionsList, initialValue, onSelect, placeholderText, multiple = false) {
     const dropdown = L.DomUtil.create('div', 'efs-dropdown', container);
     
     const trigger = L.DomUtil.create('div', 'efs-dropdown-trigger', dropdown);
@@ -8351,13 +10439,38 @@ function createSearchableDropdown(container, optionsList, initialValue, onSelect
         return String(labelA).localeCompare(String(labelB));
     });
 
+    // State for multiple selection
+    let selectedValues = new Set();
+    if (multiple) {
+        if (Array.isArray(initialValue)) {
+            initialValue.forEach(v => selectedValues.add(v));
+        } else if (initialValue) {
+            selectedValues.add(initialValue);
+        }
+    }
+
     // Helper to get label from value
     const getLabel = (val) => {
-        const opt = sortedOptions.find(o => (typeof o === 'object' ? o.value : o) === val);
-        return opt ? (typeof opt === 'object' ? opt.label : opt) : placeholderText;
+        if (multiple) {
+            if (selectedValues.size === 0) return placeholderText || "Select...";
+            if (selectedValues.has("")) return "All"; 
+            if (selectedValues.size === 1) {
+                const v = [...selectedValues][0];
+                const opt = sortedOptions.find(o => (typeof o === 'object' ? o.value : o) === v);
+                return opt ? (typeof opt === 'object' ? opt.label : opt) : v;
+            }
+            return `${selectedValues.size} selected`;
+        } else {
+            const opt = sortedOptions.find(o => (typeof o === 'object' ? o.value : o) === val);
+            return opt ? (typeof opt === 'object' ? opt.label : opt) : placeholderText;
+        }
     };
     
-    trigger.textContent = getLabel(initialValue);
+    const updateTriggerText = () => {
+        trigger.textContent = getLabel(multiple ? null : initialValue);
+    };
+    
+    updateTriggerText();
     
     const menu = L.DomUtil.create('div', 'efs-dropdown-menu', dropdown);
     
@@ -8378,17 +10491,54 @@ function createSearchableDropdown(container, optionsList, initialValue, onSelect
             
             if (String(label).toLowerCase().includes(lowerFilter)) {
                 const item = L.DomUtil.create('div', 'efs-dropdown-option', list);
-                item.textContent = label;
-                if (val === initialValue) {
-                    item.classList.add('selected');
+                
+                if (multiple) {
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = selectedValues.has(val);
+                    checkbox.style.marginRight = '8px';
+                    checkbox.style.pointerEvents = 'none';
+                    item.appendChild(checkbox);
+                    item.appendChild(document.createTextNode(label));
+
+                    if (selectedValues.has(val)) {
+                        item.classList.add('selected');
+                    }
+                } else {
+                    item.textContent = label;
+                    if (val === initialValue) {
+                        item.classList.add('selected');
+                    }
                 }
                 
                 L.DomEvent.on(item, 'click', (e) => {
                     L.DomEvent.stop(e);
-                    trigger.textContent = label;
-                    initialValue = val;
-                    menu.style.display = 'none';
-                    onSelect(val);
+                    
+                    if (multiple) {
+                        if (val === "") {
+                            if (selectedValues.has("")) {
+                                selectedValues.clear();
+                            } else {
+                                selectedValues.clear();
+                                selectedValues.add("");
+                            }
+                        } else {
+                            if (selectedValues.has(val)) {
+                                selectedValues.delete(val);
+                            } else {
+                                selectedValues.add(val);
+                                selectedValues.delete("");
+                            }
+                        }
+                        updateTriggerText();
+                        renderOptions(searchInput.value);
+                        onSelect([...selectedValues]);
+                    } else {
+                        trigger.textContent = label;
+                        initialValue = val;
+                        menu.style.display = 'none';
+                        onSelect(val);
+                    }
                 });
             }
         });
@@ -8513,9 +10663,14 @@ function createWellSelectorWidget(mapInstance, wellNames) {
 		return;
 	}
 
+    // Initialize highlight group
+    if (!window._efsHighlightedMarkers) {
+        window._efsHighlightedMarkers = L.layerGroup().addTo(mapInstance);
+    }
+
 	// NEW: state + helpers
-	let lastSelectedWell = "";
 	function clearHighlight() {
+        window._efsHighlightedMarkers.clearLayers();
 		if (window._efsHighlightedMarker) {
 			try { mapInstance.removeLayer(window._efsHighlightedMarker); } catch (e) {}
 			window._efsHighlightedMarker = null;
@@ -8531,7 +10686,7 @@ function createWellSelectorWidget(mapInstance, wellNames) {
 	}
 
 	const BASE_ZOOM = 14;
-	const WELL_ZOOM = 10; // min zoom when focusing on a well
+	const WELL_ZOOM = 14; // min zoom when focusing on a well
 
 	// Create container
 	const container = L.DomUtil.create('div', 'well-selector-container');
@@ -8555,22 +10710,37 @@ function createWellSelectorWidget(mapInstance, wellNames) {
     const options = [{value: "", label: "All"}, ...wellNames.map(w => ({value: w, label: w}))];
 
     // Use custom searchable dropdown
-    createSearchableDropdown(container, options, "", (selectedWell) => {
-        lastSelectedWell = selectedWell;
+    createSearchableDropdown(container, options, "", (selectedVals) => {
+        const wells = Array.isArray(selectedVals) ? selectedVals : [selectedVals];
+        const hasAll = wells.includes("") || wells.length === 0;
+        const activeWells = hasAll ? [] : wells;
+        
+        // Store active wells globally for persistence across redraws
+        window._efsActiveWells = activeWells;
+
 		clearHighlight();
 
-		if (selectedWell) {
+		if (activeWells.length > 0) {
+            const bounds = L.latLngBounds();
+            const activeWellsLower = activeWells.map(w => String(w).toLowerCase());
+            
 			mapInstance.eachLayer(layer => {
-				if (layer instanceof L.CircleMarker) {
-					const key = (layer.options?.searchKey || '').toLowerCase();
-					if (key === selectedWell.toLowerCase()) {
+				if ((layer instanceof L.CircleMarker || layer instanceof L.Marker) && layer.options && layer.options.searchKey) {
+					const key = (layer.options.searchKey || '').toLowerCase();
+					if (activeWellsLower.includes(key)) {
 						// Highlight the marker visually
-						layer.setStyle({ fillOpacity: 1, weight: 3 });
-						layer.bringToFront();
+                        if (typeof layer.setStyle === 'function') {
+						    layer.setStyle({ fillOpacity: 1, weight: 3 });
+                        }
+                        
+                        if (typeof layer.bringToFront === 'function') {
+						    layer.bringToFront();
+                        } else if (typeof layer.setZIndexOffset === 'function') {
+                            layer.setZIndexOffset(1000);
+                        }
 						
 						// Add red circle highlight around the marker
 						const latlng = layer.getLatLng();
-						// CHANGED: Use circleMarker (pixels) instead of circle (meters) for consistent visibility
 						const highlightCircle = L.circleMarker(latlng, {
 							color: 'white', // White border for contrast
 							fillColor: 'purple',
@@ -8578,25 +10748,17 @@ function createWellSelectorWidget(mapInstance, wellNames) {
 							weight: 2,
 							radius: 6, // Slightly larger than normal markers (4)
 							interactive: false
-						}).addTo(mapInstance);
-						
+						});
+                        
                         // NEW: Attach well ID to highlight for filtering checks
-                        highlightCircle._efsWellId = selectedWell;
-
-						// store globally so it can be removed when formation changes
-						window._efsHighlightedMarker = highlightCircle;
+                        highlightCircle._efsWellId = layer.options.searchKey;
+                        window._efsHighlightedMarkers.addLayer(highlightCircle);
+                        
+                        bounds.extend(latlng);
 						
-						// compute target zoom: zoom in to at least WELL_ZOOM if currently more zoomed out
-						const currentZoom = mapInstance.getZoom();
-						const targetZoom = Math.max(WELL_ZOOM, currentZoom);
-						mapInstance.flyTo(latlng, targetZoom, { animate: true });
-						
-						// Open popup
-						if (layer._popup) layer.openPopup();
-
-                        // NEW: Show details sidebar with chart
-                        if (typeof showWellDetails === 'function') {
-                            showWellDetails(selectedWell);
+						// Open popup if only one selected
+                        if (activeWells.length === 1 && layer._popup) {
+                            layer.openPopup();
                         }
 					} else {
 						// Reset other markers to default style
@@ -8606,12 +10768,28 @@ function createWellSelectorWidget(mapInstance, wellNames) {
 					}
 				}
 			});
+            
+            if (bounds.isValid()) {
+                // Zoom to bounds
+                mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: WELL_ZOOM });
+            }
+
+            // Show details sidebar for one or multiple wells
+            if (activeWells.length > 0) {
+                if (typeof showWellDetails === 'function') {
+                    // Pass single ID if one, else pass array
+                    showWellDetails(activeWells.length === 1 ? activeWells[0] : activeWells);
+                }
+            } else {
+                if (details_sidebar) details_sidebar.hide();
+            }
+            
 		} else {
 			recenterToDefault();
             // NEW: Close details sidebar when "All" is selected
             if (details_sidebar) details_sidebar.hide();
 		}
-    }, "All");
+    }, "All", true); // Enable multiple selection
 
 	// Prevent map interactions
 	L.DomEvent.disableClickPropagation(container);
@@ -8908,6 +11086,18 @@ function createTimeSliderWidget(mapInstance, wells) {
 
     const container = L.DomUtil.create('div', 'time-slider-container');
     
+    // Override styles for sidebar placement
+    container.style.setProperty('position', 'relative', 'important');
+    container.style.setProperty('width', '100%', 'important');
+    container.style.setProperty('max-width', '100%', 'important');
+    container.style.setProperty('box-shadow', 'none', 'important');
+    // Background and border handled by CSS for theming
+    container.style.setProperty('margin', '0 0 15px 0', 'important');
+    container.style.setProperty('transform', 'none', 'important');
+    container.style.setProperty('left', 'auto', 'important');
+    container.style.setProperty('bottom', 'auto', 'important');
+    container.style.setProperty('z-index', 'auto', 'important');
+    
     // NEW: Add title
     const title = L.DomUtil.create('div', 'time-slider-title', container);
     title.textContent = "Stream wells according spud date";
@@ -9048,12 +11238,16 @@ function createTimeSliderWidget(mapInstance, wells) {
 
     updateUI();
     
-    L.DomEvent.disableClickPropagation(container);
-    L.DomEvent.disableScrollPropagation(container);
+    // Append to Filters Sidebar
+    const filtersContainer = document.getElementById('filters-container');
+    if (filtersContainer) {
+        filtersContainer.appendChild(container);
+    } else {
+        mapInstance._container.appendChild(container);
+    }
 
-    mapInstance._container.appendChild(container);
     window._efsTimeSliderEl = container;
-    updateSelectorPositions();
+    // updateSelectorPositions();
     return container;
 }
 
@@ -9122,6 +11316,7 @@ function loadWellsForHorizon(formation) {
 			} = createStatusColorResolver(statusColorOverrides);
 
 			window._efsStatusColors = {
+                resolve: statusColor,
 				palette: statusColorPalette,
 				defaultColor: statusColorDefault
 			};
@@ -9145,6 +11340,7 @@ function loadWellsForHorizon(formation) {
 			});
 
 			const wellPointFeatureGroup = L.featureGroup().addTo(map);
+            window._efsWellLayer = wellPointFeatureGroup;
 
 			if (wells.length === 0) {
 				console.warn("No wells returned; skipping layer setup.");
@@ -9154,6 +11350,7 @@ function loadWellsForHorizon(formation) {
 			const types = detectColumnTypes(wells);
 			const dataset = createWellDataset(wells);
 			window._efsDataset = dataset;
+            window._efsDataset.wells = wells;
 
 			markersByWell.clear();
 			populateWellPointFeatureGroup(wells, wellPointFeatureGroup, statusColor, markersByWell);
@@ -9508,10 +11705,12 @@ window.toggleWellMarkerVisibility = function (wellName, show) {
 	if (!targets.length) {
 		const found = [];
 		map.eachLayer(layer => {
-		if (layer instanceof L.CircleMarker) {
-			const key = (layer.options?.searchKey || '').toLowerCase();
-			if (key === normalized) found.push(layer);
-		}
+            // Check for CircleMarker OR Marker (for custom shapes)
+            // And ensure it has the searchKey property we use for identification
+            if ((layer instanceof L.CircleMarker || layer instanceof L.Marker) && layer.options && layer.options.searchKey) {
+                const key = (layer.options.searchKey || '').toLowerCase();
+                if (key === normalized) found.push(layer);
+            }
 		});
 		if (found.length) {
 			targets = found;
@@ -9624,3 +11823,327 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// --- Sidebar Dashboard Tab Deletion ---
+window.deleteDashboardTab = function(tabId) {
+    if (!confirm('Are you sure you want to delete this dashboard tab?')) return;
+
+    // Remove Tab Element
+    const tab = document.querySelector(`.dashboard-tab[data-tab="${tabId}"]`);
+    if (tab) tab.remove();
+
+    // Remove Content Pane
+    const content = document.getElementById(`dashboard-tab-${tabId}`);
+    if (content) content.remove();
+
+    // Switch to Main if the deleted tab was active
+    if (window._efsActiveDashboardTab === tabId) {
+        switchDashboardTab('main');
+    }
+    
+    // Update Persistence
+    saveExtraChartsState();
+};
+
+// --- Global Dashboard Tabs Logic ---
+
+document.addEventListener('DOMContentLoaded', function() {
+    const addGlobalTabBtn = document.getElementById('add-global-tab');
+    if (addGlobalTabBtn) {
+        addGlobalTabBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            addGlobalDashboardTab();
+        });
+    }
+});
+
+window.addGlobalDashboardTab = function(name, color) {
+    const tabId = 'global-dashboard-' + Date.now();
+    // Count existing global dashboard tabs to name the new one
+    const globalCount = document.querySelectorAll('.global-dashboard-tab').length + 1;
+    const tabName = name || 'Dashboard ' + globalCount;
+
+    // Create Tab Item
+    const li = document.createElement('li');
+    li.className = 'nav-item global-dashboard-tab';
+    li.role = 'presentation';
+    li.draggable = true;
+
+    // Drag & Drop
+    li.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', tabId);
+        e.dataTransfer.effectAllowed = 'move';
+        li.style.opacity = '0.5';
+    });
+    
+    li.addEventListener('dragend', () => {
+        li.style.opacity = '1';
+    });
+    
+    li.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    });
+    
+    li.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const draggedId = e.dataTransfer.getData('text/plain');
+        // The draggedId is the tabId (e.g. global-dashboard-123)
+        // The button has id = tabId + '-tab'
+        const draggedBtn = document.getElementById(draggedId + '-tab');
+        if (draggedBtn) {
+            const draggedLi = draggedBtn.parentNode;
+            // Ensure we are dropping a global tab
+            if (draggedLi && draggedLi.classList.contains('global-dashboard-tab') && draggedLi !== li) {
+                const parent = li.parentNode;
+                const rect = li.getBoundingClientRect();
+                const midX = rect.left + rect.width / 2;
+                if (e.clientX < midX) {
+                    parent.insertBefore(draggedLi, li);
+                } else {
+                    parent.insertBefore(draggedLi, li.nextSibling);
+                }
+            }
+        }
+    });
+    
+    const button = document.createElement('button');
+    button.className = 'nav-link';
+    button.id = tabId + '-tab';
+    button.setAttribute('data-bs-toggle', 'tab');
+    button.setAttribute('data-bs-target', '#' + tabId + '-content');
+    button.type = 'button';
+    button.role = 'tab';
+    button.setAttribute('aria-controls', tabId + '-content');
+    button.setAttribute('aria-selected', 'false');
+    button.style.display = 'flex';
+    button.style.alignItems = 'center';
+    button.style.gap = '5px';
+    
+    const bgColor = color || '';
+    if (bgColor) {
+        button.style.backgroundColor = bgColor;
+        // Adjust text color if needed, but simple for now
+    }
+
+    // Color Picker (Right Click)
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.style.display = 'none';
+    colorInput.value = bgColor || '#ffffff';
+    colorInput.onchange = (e) => {
+        button.style.backgroundColor = e.target.value;
+    };
+    button.appendChild(colorInput);
+    
+    button.oncontextmenu = (e) => {
+        e.preventDefault();
+        colorInput.click();
+    };
+    
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = tabName;
+    titleSpan.title = "Double click to rename, Right click to change color";
+
+    // Rename functionality
+    titleSpan.ondblclick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const currentName = titleSpan.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.style.cssText = "width: 100px; font-size: 14px; padding: 2px; border: 1px solid #999; border-radius: 2px; color: black;";
+        
+        // Prevent click on input from triggering tab switch
+        input.onclick = (ev) => ev.stopPropagation();
+
+        const saveName = () => {
+            const newName = input.value.trim() || currentName;
+            titleSpan.textContent = newName;
+            // Update content header as well
+            const contentHeader = document.querySelector(`#${tabId}-content h3`);
+            if (contentHeader) contentHeader.textContent = newName;
+        };
+
+        input.onblur = saveName;
+        input.onkeydown = (ev) => {
+            if (ev.key === 'Enter') {
+                input.blur();
+            }
+        };
+        
+        titleSpan.textContent = '';
+        titleSpan.appendChild(input);
+        input.focus();
+    };
+
+    button.appendChild(titleSpan);
+    
+    // Delete Button
+    const deleteBtn = document.createElement('span');
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.style.cssText = "cursor: pointer; color: #999; font-weight: bold; font-size: 14px; line-height: 1; margin-left: 5px;";
+    deleteBtn.onmouseover = () => deleteBtn.style.color = 'red';
+    deleteBtn.onmouseout = () => deleteBtn.style.color = '#999';
+    deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        e.preventDefault(); // Prevent tab switch
+        deleteGlobalDashboardTab(tabId);
+    };
+    button.appendChild(deleteBtn);
+    
+    li.appendChild(button);
+
+    // Insert before the Add Button
+    const addBtnLi = document.getElementById('add-global-tab').parentNode;
+    document.getElementById('mainTabs').insertBefore(li, addBtnLi);
+
+    // Create Content Pane
+    const content = document.createElement('div');
+    content.className = 'tab-pane fade';
+    content.id = tabId + '-content';
+    content.role = 'tabpanel';
+    content.setAttribute('aria-labelledby', tabId + '-tab');
+    content.style.height = '100%';
+    content.style.padding = '20px';
+    content.innerHTML = `<h3>${tabName}</h3><p>New dashboard content...</p>`;
+    
+    document.getElementById('mainTabsContent').appendChild(content);
+    
+    // Activate the new tab
+    // Check if bootstrap is available
+    if (typeof bootstrap !== 'undefined') {
+        const tabTrigger = new bootstrap.Tab(button);
+        tabTrigger.show();
+    }
+};
+
+window.deleteGlobalDashboardTab = function(tabId) {
+    if (!confirm('Are you sure you want to delete this dashboard?')) return;
+    
+    // Remove Tab
+    const tabBtn = document.getElementById(tabId + '-tab');
+    if (tabBtn) {
+        tabBtn.parentNode.remove();
+    }
+    
+    // Remove Content
+    const content = document.getElementById(tabId + '-content');
+    if (content) {
+        content.remove();
+    }
+    
+    // Switch to Map Analysis if active tab was deleted
+    if (typeof bootstrap !== 'undefined') {
+        const mapTab = new bootstrap.Tab(document.getElementById('map-tab'));
+        mapTab.show();
+    }
+};
+
+// --- Data Lineage Logic ---
+
+document.addEventListener('DOMContentLoaded', function() {
+    const createTableBtn = document.getElementById('create-table-btn');
+    const importFileBtn = document.getElementById('import-file-btn');
+    const fileInput = document.getElementById('import-file-input');
+    const container = document.getElementById('lineage-table-container');
+
+    if (createTableBtn) {
+        createTableBtn.addEventListener('click', () => {
+            createEmptyTable(container);
+        });
+    }
+
+    if (importFileBtn && fileInput) {
+        importFileBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const name = file.name.toLowerCase();
+
+            if (name.endsWith('.csv')) {
+                reader.onload = (evt) => {
+                    const text = evt.target.result;
+                    const data = parseCSV(text);
+                    renderTable(container, data);
+                };
+                reader.readAsText(file);
+            } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+                reader.onload = (evt) => {
+                    const data = evt.target.result;
+                    if (typeof XLSX !== 'undefined') {
+                        const workbook = XLSX.read(data, { type: 'binary' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        renderTable(container, json);
+                    } else {
+                        alert('XLSX library not loaded. Please check internet connection or include xlsx.full.min.js');
+                    }
+                };
+                reader.readAsBinaryString(file);
+            } else {
+                alert('Unsupported file format. Please use CSV or XLSX.');
+            }
+            
+            // Reset input
+            fileInput.value = '';
+        });
+    }
+});
+
+function createEmptyTable(container) {
+    // Create a default 5x5 table
+    const data = [];
+    // Header
+    const header = ['Column 1', 'Column 2', 'Column 3', 'Column 4', 'Column 5'];
+    data.push(header);
+    // Rows
+    for (let i = 0; i < 5; i++) {
+        data.push(['', '', '', '', '']);
+    }
+    renderTable(container, data);
+}
+
+function parseCSV(text) {
+    const lines = text.split('\n');
+    return lines.map(line => {
+        // Simple CSV split (doesn't handle quoted commas well, but sufficient for basic use)
+        return line.split(',').map(cell => cell.trim());
+    }).filter(row => row.length > 0 && row.some(c => c !== ''));
+}
+
+function renderTable(container, data) {
+    if (!data || data.length === 0) {
+        container.innerHTML = '<p class="text-muted" style="padding: 10px;">No data found.</p>';
+        return;
+    }
+
+    let html = '<table class="table table-bordered table-striped table-hover" style="margin: 0;">';
+    
+    // Header
+    html += '<thead><tr>';
+    data[0].forEach(cell => {
+        html += `<th contenteditable="true">${cell}</th>`;
+    });
+    html += '</tr></thead>';
+
+    // Body
+    html += '<tbody>';
+    for (let i = 1; i < data.length; i++) {
+        html += '<tr>';
+        data[i].forEach(cell => {
+            html += `<td contenteditable="true">${cell}</td>`;
+        });
+        html += '</tr>';
+    }
+    html += '</tbody></table>';
+
+    container.innerHTML = html;
+}
