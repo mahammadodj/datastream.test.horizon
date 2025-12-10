@@ -833,3 +833,77 @@ body.dark-theme .leaflet-control-box-select.active {
     color: #fff;
     border-color: #666;
 }
+
+/* Custom Tab Styling */
+.nav-tabs {
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #ffffff !important; /* Override inline style */
+    padding: 0 10px;
+    gap: 5px;
+}
+
+.nav-tabs .nav-item {
+    margin-bottom: -1px;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 10px 15px;
+    transition: all 0.2s ease;
+    background: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    background-color: transparent;
+    border-bottom: 3px solid #0d6efd;
+    font-weight: 600;
+}
+
+/* Add Tab Button Styling */
+#add-global-tab {
+    color: #6c757d;
+    font-size: 18px;
+    padding: 5px 12px;
+    margin-top: 2px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 35px;
+    width: 35px;
+    border: none; /* Ensure no border from nav-link */
+    background: transparent;
+}
+
+#add-global-tab:hover {
+    background-color: #e9ecef;
+    color: #0d6efd;
+}
+
+/* Close Button in Tabs */
+.nav-link .close-tab-btn {
+    margin-left: 8px;
+    font-size: 18px;
+    line-height: 1;
+    color: #adb5bd;
+    border-radius: 50%;
+    padding: 0 4px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.nav-link .close-tab-btn:hover {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}

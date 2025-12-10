@@ -97,6 +97,11 @@ const DatasetLineage = {
             tempLink.endY = event.clientY - rect.top;
         };
 
+        const highlightedLinkId = ref(null);
+        const highlightLink = (id) => {
+            highlightedLinkId.value = id;
+        };
+
         const completeLinking = (event, table, col, isRight) => {
             event.stopPropagation();
             if (linkingSource.value && tempLink.active) {
@@ -107,6 +112,7 @@ const DatasetLineage = {
 
                 links.value.push({
                     id: Date.now(),
+                    name: `Connection ${links.value.length + 1}`,
                     sourceTableId: linkingSource.value.tableId,
                     sourceCol: linkingSource.value.colName,
                     targetTableId: table.id,
@@ -184,13 +190,13 @@ const DatasetLineage = {
         const fileInput = ref(null);
         const isLoading = ref(false);
         const loadingMessage = ref('');
+        const isDragOver = ref(false);
 
         const triggerImport = () => {
             fileInput.value.click();
         };
 
-        const handleFileUpload = (event) => {
-            const file = event.target.files[0];
+        const processFile = (file) => {
             if (!file) return;
 
             isLoading.value = true;
@@ -276,6 +282,29 @@ const DatasetLineage = {
             }
         };
 
+        const handleFileUpload = (event) => {
+            const file = event.target.files[0];
+            processFile(file);
+        };
+
+        const handleDragOver = (event) => {
+            isDragOver.value = true;
+        };
+
+        const handleDragLeave = (event) => {
+            // Only set to false if we are leaving the main container, not entering a child
+            if (event.currentTarget.contains(event.relatedTarget)) return;
+            isDragOver.value = false;
+        };
+
+        const handleDrop = (event) => {
+            isDragOver.value = false;
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        };
+
         const parseCSV = (text) => {
             const lines = text.split('\n');
             const firstLine = lines[0];
@@ -350,7 +379,13 @@ const DatasetLineage = {
         };
 
         const addColumn = () => {
-            const newColName = `Column ${previewModal.columns.length + 1}`;
+            let counter = 1;
+            let newColName = `Column ${previewModal.columns.length + counter}`;
+            while (previewModal.columns.some(c => c.name === newColName)) {
+                counter++;
+                newColName = `Column ${previewModal.columns.length + counter}`;
+            }
+            
             previewModal.columns.push({ name: newColName, type: 'string' });
             // Add this key to all rows
             previewModal.rows.forEach(row => {
@@ -451,6 +486,28 @@ const DatasetLineage = {
             }
         };
 
+        const addColumnToTableFromMenu = () => {
+            if (contextMenu.targetTable) {
+                const table = contextMenu.targetTable;
+                
+                let counter = 1;
+                let newColName = `Column ${table.columns.length + counter}`;
+                while (table.columns.some(c => c.name === newColName)) {
+                    counter++;
+                    newColName = `Column ${table.columns.length + counter}`;
+                }
+                
+                table.columns.push({ name: newColName, type: 'string' });
+                if (table.data) {
+                    table.data.forEach(row => row[newColName] = '');
+                }
+                notifyChange();
+                
+                // Open preview to let user edit the new column
+                openPreview();
+            }
+        };
+
         const deleteTable = (tableId) => {
             if (confirm("Are you sure you want to delete this dataset?")) {
                 tables.value = tables.value.filter(t => t.id !== tableId);
@@ -509,9 +566,52 @@ const DatasetLineage = {
 
         const availableTypes = ['string', 'int', 'decimal', 'datetime', 'boolean'];
 
+        const getTableName = (id) => {
+            const t = tables.value.find(x => x.id === id);
+            return t ? t.name : 'Unknown';
+        };
+
+        const deleteLink = (index) => {
+            links.value.splice(index, 1);
+            notifyChange();
+        };
+
+        // Sidebar Logic
+        const sidebarWidth = ref(300);
+        const isSidebarOpen = ref(true);
+        const isResizingSidebar = ref(false);
+
+        const toggleSidebar = () => {
+            isSidebarOpen.value = !isSidebarOpen.value;
+        };
+
+        const startResizeSidebar = (event) => {
+            isResizingSidebar.value = true;
+            document.addEventListener('mousemove', onResizeSidebar);
+            document.addEventListener('mouseup', stopResizeSidebar);
+        };
+
+        const onResizeSidebar = (event) => {
+            if (!isResizingSidebar.value) return;
+            const newWidth = window.innerWidth - event.clientX;
+            if (newWidth > 200 && newWidth < 600) {
+                sidebarWidth.value = newWidth;
+            }
+        };
+
+        const stopResizeSidebar = () => {
+            isResizingSidebar.value = false;
+            document.removeEventListener('mousemove', onResizeSidebar);
+            document.removeEventListener('mouseup', stopResizeSidebar);
+        };
+
         return {
             tables,
             links,
+            highlightedLinkId,
+            highlightLink,
+            getTableName,
+            deleteLink,
             startDrag,
             fileInput,
             triggerImport,
@@ -527,6 +627,7 @@ const DatasetLineage = {
             showContextMenu,
             createTableFromContextMenu,
             deleteTable,
+            addColumnToTableFromMenu,
             availableTypes,
             notifyChange,
             previewModal,
@@ -543,19 +644,101 @@ const DatasetLineage = {
             removeColumn,
             updateColumnName,
             addRow,
-            removeRow
+            removeRow,
+            isDragOver,
+            handleDragOver,
+            handleDragLeave,
+            handleDrop,
+            sidebarWidth,
+            isSidebarOpen,
+            toggleSidebar,
+            startResizeSidebar
         };
     },
     template: `
         <div class="dataset-lineage-container" 
              style="position: relative; width: 100%; height: 100%; background-color: #f4f4f4; overflow: hidden;"
-             @contextmenu.prevent="showContextMenu">
+             @contextmenu.prevent="showContextMenu"
+             @dragover.prevent="handleDragOver"
+             @dragleave.prevent="handleDragLeave"
+             @drop.prevent="handleDrop">
             
-            <div class="toolbar" style="position: absolute; top: 10px; left: 10px; z-index: 100;">
-                <button @click="triggerImport" class="btn btn-primary btn-sm" style="box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            <div v-if="isDragOver" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(106, 17, 203, 0.1); z-index: 50; pointer-events: none; display: flex; justify-content: center; align-items: center; border: 4px dashed #6a11cb;">
+                <div style="background: white; padding: 20px 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 24px; color: #6a11cb; font-weight: bold;">
+                    Drop file to import
+                </div>
+            </div>
+
+            <div class="toolbar" style="position: absolute; top: 20px; left: 20px; z-index: 100;">
+                <button @click="triggerImport" class="import-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cloud-upload" viewBox="0 0 16 16" style="margin-right: 8px;">
+                        <path fill-rule="evenodd" d="M4.406 1.342A5.53 5.53 0 0 1 8 0c2.69 0 4.923 2 5.166 4.579C14.758 4.804 16 6.137 16 7.773 16 9.633 14.533 11.1 12.667 11.1h-1.586A4.65 4.65 0 0 1 11 10.5c-.055-.156-.102-.312-.142-.469l-.004-.017A3.9 3.9 0 0 0 8 8.5a3.9 3.9 0 0 0-2.854 1.514l-.004.017c-.04.157-.087.313-.142.469A4.65 4.65 0 0 1 5 11.1H3.333C1.467 11.1 0 9.633 0 7.773c0-1.636 1.242-2.969 2.834-3.193C3.065 2.033 4.284 1.342 4.406 1.342m8.082 3.666a4.54 4.54 0 0 0-1.117-3.066C10.992 1.363 9.63 0 8 0c-2.347 0-4.198 1.603-4.617 3.88-.32.074-.605.168-.85.275A5.27 5.27 0 0 0 0 7.773C0 10.249 2.014 12.26 4.5 12.26h4.306a2.99 2.99 0 0 1 1.294-1.16H4.5a3.77 3.77 0 0 1-3.3-2.228 3.77 3.77 0 0 1 1.218-4.88 3.7 3.7 0 0 1 3.644-.424.75.75 0 0 0 .988-.216 3.54 3.54 0 0 1 5.095-.217.75.75 0 0 0 1.052-.081 3.74 3.74 0 0 1 3.3 2.228 3.77 3.77 0 0 1-1.218 4.88c.35.12.68.28 1.01.48A5.27 5.27 0 0 0 16 7.773c0-2.476-2.014-4.487-4.5-4.487h-.332z"/>
+                        <path fill-rule="evenodd" d="M8 11.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m-2.854-4.354a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8 12.207l-.646.647a.5.5 0 0 1-.708-.708z"/>
+                    </svg>
                     Import Dataset
                 </button>
                 <input type="file" ref="fileInput" @change="handleFileUpload" accept=".csv, .xlsx, .xls" style="display: none;" />
+            </div>
+
+            <!-- Collapsed Sidebar -->
+            <div v-if="!isSidebarOpen" 
+                 @click="toggleSidebar"
+                 class="collapsed-sidebar"
+                 style="position: absolute; right: 0; top: 0; width: 32px; height: 100%; background: white; border-left: 1px solid #ddd; z-index: 90; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
+                <div style="transform: rotate(-90deg); white-space: nowrap; font-weight: 600; color: #555; letter-spacing: 1px; font-size: 12px;">
+                    DATA RELATIONSHIPS
+                </div>
+            </div>
+
+            <!-- Relationships Sidebar -->
+            <div v-if="isSidebarOpen" class="relationships-sidebar" 
+                 :style="{ width: sidebarWidth + 'px' }"
+                 style="position: absolute; right: 0; top: 0; height: 100%; background: white; border-left: 1px solid #ddd; box-shadow: -2px 0 5px rgba(0,0,0,0.05); z-index: 90; display: flex; flex-direction: column;">
+                
+                <div class="sidebar-resizer" @mousedown="startResizeSidebar"></div>
+
+                <div style="padding: 15px; border-bottom: 1px solid #eee; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; font-size: 16px; color: #333;">Data Relationships</h3>
+                    <button @click="toggleSidebar" class="close-btn" style="width: 24px; height: 24px; font-size: 16px; background: transparent;">&times;</button>
+                </div>
+                <div style="flex-grow: 1; overflow-y: auto; padding: 15px;">
+                    <div v-if="links.length === 0" style="text-align: center; color: #999; font-style: italic; padding-top: 20px;">
+                        No relationships created.
+                    </div>
+                    <div v-for="(link, index) in links" :key="link.id" 
+                         @click="highlightLink(link.id)"
+                         :style="{ 
+                             background: link.id === highlightedLinkId ? '#f0fff4' : '#fff', 
+                             border: link.id === highlightedLinkId ? '2px solid #2ecc71' : '1px solid #eee',
+                             borderRadius: '6px', 
+                             padding: '10px', 
+                             marginBottom: '10px', 
+                             position: 'relative', 
+                             transition: 'all 0.2s',
+                             cursor: 'pointer'
+                         }">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
+                            <input 
+                                v-model="link.name" 
+                                @click.stop 
+                                class="connection-name-input" 
+                                placeholder="Connection Name"
+                            />
+                            <button @click.stop="deleteLink(index)" style="background: none; border: none; color: #dc3545; cursor: pointer; padding: 2px;" title="Delete Connection">&times;</button>
+                        </div>
+                        <div style="font-size: 12px; color: #555; display: flex; align-items: center; gap: 5px;">
+                            <span style="font-weight: 500;">{{ getTableName(link.sourceTableId) }}</span>
+                            <span style="color: #999;">.</span>
+                            <span>{{ link.sourceCol }}</span>
+                        </div>
+                        <div style="text-align: center; color: #999; font-size: 10px; margin: 2px 0;">↓</div>
+                        <div style="font-size: 12px; color: #555; display: flex; align-items: center; gap: 5px;">
+                            <span style="font-weight: 500;">{{ getTableName(link.targetTableId) }}</span>
+                            <span style="color: #999;">.</span>
+                            <span>{{ link.targetCol }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div v-if="isLoading" class="loading-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 200; display: flex; justify-content: center; align-items: center; flex-direction: column;">
@@ -569,31 +752,31 @@ const DatasetLineage = {
             <div v-if="previewModal.visible" class="preview-modal-overlay" @click.self="closePreview">
                 <div class="preview-modal">
                     <div class="preview-header">
-                        <h3>Preview: {{ previewModal.title }}</h3>
-                        <button class="close-btn" @click="closePreview">&times;</button>
+                        <h3>{{ previewModal.title }}</h3>
+                        <button class="close-btn" @click="closePreview" title="Close">&times;</button>
                     </div>
                     <div class="preview-body">
-                        <table class="table table-striped table-bordered table-sm">
+                        <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th v-for="(col, index) in previewModal.columns" :key="index">
-                                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 5px;">
-                                            <div style="display: flex; align-items: center; gap: 5px; width: 100%;">
+                                        <div class="header-input-group">
+                                            <div class="header-name-row">
                                                 <input 
                                                     :value="col.name" 
                                                     @change="updateColumnName(index, $event.target.value)"
-                                                    class="form-control form-control-sm"
-                                                    style="font-weight: bold; font-size: 12px; padding: 2px 5px;"
+                                                    class="header-input"
+                                                    placeholder="Column Name"
                                                 />
-                                                <button @click="removeColumn(index)" class="btn btn-outline-danger btn-sm" style="padding: 0 4px; font-size: 10px; line-height: 1;">&times;</button>
+                                                <button @click="removeColumn(index)" class="btn-icon-danger" title="Remove Column">&times;</button>
                                             </div>
-                                            <select v-model="col.type" class="col-type-select" style="margin-left: 0; margin-top: 0; width: 100%;">
+                                            <select v-model="col.type" class="header-type-select">
                                                 <option v-for="type in availableTypes" :key="type" :value="type">{{ type }}</option>
                                             </select>
                                         </div>
                                     </th>
-                                    <th style="vertical-align: middle; text-align: center; width: 40px; min-width: 40px;">
-                                        <button @click="addColumn" class="btn btn-success btn-sm" style="padding: 0 6px; font-size: 14px; line-height: 1;" title="Add Column">+</button>
+                                    <th style="vertical-align: middle; text-align: center; width: 50px; min-width: 50px;">
+                                        <button @click="addColumn" class="btn-icon-success" title="Add Column">+</button>
                                     </th>
                                 </tr>
                             </thead>
@@ -602,26 +785,30 @@ const DatasetLineage = {
                                     <td v-for="(col, colIndex) in previewModal.columns" :key="colIndex"
                                         :class="{ 'invalid-cell': !validateCell(row[col.name], col.type) }"
                                         :title="!validateCell(row[col.name], col.type) ? 'Value does not match type ' + col.type : ''">
-                                        <input v-model="row[col.name]" style="width: 100%; border: none; background: transparent; outline: none; font-family: inherit; font-size: inherit;" />
+                                        <input v-model="row[col.name]" class="cell-input" />
                                     </td>
                                     <td class="text-center">
-                                        <button @click="removeRow(rowIndex)" class="btn btn-outline-danger btn-sm" style="padding: 0 4px; font-size: 10px; line-height: 1;">&times;</button>
+                                        <button @click="removeRow(rowIndex)" class="btn-icon-danger" title="Remove Row">&times;</button>
                                     </td>
                                 </tr>
                                 <tr v-if="previewModal.rows.length === 0">
-                                    <td :colspan="previewModal.columns.length + 1" class="text-center">No data available. Add a row to start editing.</td>
+                                    <td :colspan="previewModal.columns.length + 1" class="text-center text-muted p-4">
+                                        No data available. Click "Add Row" to start.
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
-                        <button @click="addRow" class="btn btn-outline-primary btn-sm mt-2" style="margin-top: 10px;">+ Add Row</button>
-                    </div>
-                    <div class="preview-footer" style="padding: 15px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px;">
-                        <div v-if="hasPreviewErrors" style="color: #d9534f; margin-right: auto; display: flex; align-items: center; font-size: 14px;">
-                            <span style="margin-right: 5px;">⚠️</span>
-                            Validation errors found. Please fix types before applying.
+                        <div class="add-row-container">
+                            <button @click="addRow" class="btn-add-row">+ Add New Row</button>
                         </div>
-                        <button class="btn btn-secondary" @click="closePreview">Cancel</button>
-                        <button class="btn btn-primary" @click="applyPreviewChanges" :disabled="hasPreviewErrors">Apply Changes</button>
+                    </div>
+                    <div class="preview-footer">
+                        <div v-if="hasPreviewErrors" class="validation-error">
+                            <span style="margin-right: 6px;">⚠️</span>
+                            Fix validation errors before applying
+                        </div>
+                        <button class="btn-secondary-custom" @click="closePreview">Cancel</button>
+                        <button class="btn-primary-custom" @click="applyPreviewChanges" :disabled="hasPreviewErrors">Apply Changes</button>
                     </div>
                 </div>
             </div>
@@ -634,12 +821,23 @@ const DatasetLineage = {
                     <i class="bi bi-plus-circle" style="margin-right: 8px;"></i> Create Dataset
                 </div>
                 <div v-if="contextMenu.type === 'table'" class="context-menu-item" @click="openPreview">
-                    <i class="bi bi-eye" style="margin-right: 8px;"></i> Preview Data
+                    <i class="bi bi-pencil-square" style="margin-right: 8px;"></i> Edit / Preview Data
+                </div>
+                <div v-if="contextMenu.type === 'table'" class="context-menu-item" @click="addColumnToTableFromMenu">
+                    <i class="bi bi-plus-square" style="margin-right: 8px;"></i> Add Column
                 </div>
             </div>
 
             <svg class="connections-layer">
-                <path v-for="link in links" :key="link.id" :d="calculatePath(link)" class="connection-line" />
+                <path v-for="link in links" :key="link.id" 
+                      :d="calculatePath(link)" 
+                      class="connection-line"
+                      :style="{ 
+                          stroke: link.id === highlightedLinkId ? '#2ecc71' : '#5c6bc0', 
+                          strokeWidth: link.id === highlightedLinkId ? '4px' : '2px',
+                          zIndex: link.id === highlightedLinkId ? 10 : 1
+                      }"
+                />
                 <path v-if="tempLink.active" :d="tempLinkPath()" class="connection-line" style="stroke-dasharray: 5,5;" />
             </svg>
 
@@ -666,7 +864,7 @@ const DatasetLineage = {
                     </button>
                 </div>
                 <div class="table-body">
-                    <div v-for="col in table.columns" :key="col.name" class="table-column">
+                    <div v-for="col in table.columns" :key="col.name" class="table-column" :title="table.data && table.data.length > 0 ? 'Sample: ' + table.data[0][col.name] : 'No data'">
                         <div class="port port-left" @mousedown.stop="startLinking($event, table, col, false)" @mouseup.stop="completeLinking($event, table, col, false)"></div>
                         <span class="col-name">{{ col.name }}</span>
                         <select v-model="col.type" @change="notifyChange" class="col-type-select" @mousedown.stop>
@@ -683,13 +881,42 @@ const DatasetLineage = {
 // Add styles dynamically
 const style = document.createElement('style');
 style.textContent = `
+    .import-btn {
+        background: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        color: #444;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .import-btn:hover {
+        background: #f8f9fa;
+        border-color: #ccc;
+        color: #222;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .import-btn:active {
+        background: #f1f1f1;
+        box-shadow: none;
+        transform: translateY(1px);
+    }
+    
+    /* Modal Styling */
     .preview-modal-overlay {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0,0,0,0.5);
+        background: rgba(0,0,0,0.4);
+        backdrop-filter: blur(2px);
         z-index: 1000;
         display: flex;
         justify-content: center;
@@ -697,59 +924,292 @@ style.textContent = `
     }
     .preview-modal {
         background: white;
-        width: 80%;
-        max-width: 900px;
-        height: 80%;
-        border-radius: 8px;
+        width: 85%;
+        max-width: 1000px;
+        height: 85%;
+        border-radius: 12px;
         display: flex;
         flex-direction: column;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        border: 1px solid rgba(0,0,0,0.1);
+        animation: modalFadeIn 0.2s ease-out;
+    }
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: scale(0.98); }
+        to { opacity: 1; transform: scale(1); }
     }
     .preview-header {
-        padding: 15px;
-        border-bottom: 1px solid #eee;
+        padding: 20px 25px;
+        border-bottom: 1px solid #f0f0f0;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        background: #fff;
+        border-radius: 12px 12px 0 0;
     }
     .preview-header h3 {
         margin: 0;
-        font-size: 18px;
+        font-size: 20px;
+        font-weight: 600;
+        color: #2c3e50;
     }
     .close-btn {
-        background: none;
+        background: #f8f9fa;
         border: none;
-        font-size: 24px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
         cursor: pointer;
         color: #666;
+        transition: all 0.2s;
+    }
+    .close-btn:hover {
+        background: #e9ecef;
+        color: #dc3545;
     }
     .preview-body {
-        padding: 15px;
+        padding: 0;
         overflow: auto;
         flex-grow: 1;
+        background: #fff;
     }
-    .preview-body table th, .preview-body table td {
-        white-space: nowrap;
-        min-width: 150px;
+    
+    /* Table Styling */
+    .preview-body table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    .preview-body table th {
+        background: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid #dee2e6;
+        padding: 12px 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        min-width: 180px; /* Ensure headers have enough space */
+    }
+    .preview-body table td {
+        padding: 8px 15px;
+        border-bottom: 1px solid #f0f0f0;
         vertical-align: middle;
+        min-width: 180px; /* Match header width */
     }
+    .preview-body table tr:last-child td {
+        border-bottom: none;
+    }
+    .preview-body table tr:hover td {
+        background-color: #f8faff;
+    }
+
+    /* Input Styling in Table */
+    .cell-input {
+        width: 100%;
+        border: 1px solid transparent;
+        background: transparent;
+        outline: none;
+        font-family: inherit;
+        font-size: inherit;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .cell-input:focus {
+        background: #fff;
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    }
+    
+    /* Header Inputs */
+    .header-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+    }
+    .header-name-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+    }
+    .header-input {
+        border: 1px solid transparent;
+        background: transparent;
+        font-weight: 600;
+        font-size: 13px;
+        color: #333;
+        flex-grow: 1; /* Ensure it takes available space */
+        width: 0; /* Allow flex-grow to work properly */
+        min-width: 0;
+        padding: 2px 4px;
+        border-radius: 4px;
+    }
+    .header-input:hover, .header-input:focus {
+        background: #fff;
+        border-color: #dee2e6;
+    }
+    .header-type-select {
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+        background: #fff;
+        color: #666;
+        width: 100%;
+        cursor: pointer;
+        appearance: auto; /* Ensure dropdown arrow is visible */
+    }
+    
+    /* Action Buttons */
+    .btn-icon-danger {
+        background: none;
+        border: none;
+        color: #adb5bd;
+        cursor: pointer;
+        padding: 2px;
+        border-radius: 4px;
+        font-size: 16px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    .btn-icon-danger:hover {
+        color: #dc3545;
+        background: rgba(220, 53, 69, 0.1);
+    }
+    .btn-icon-success {
+        background: #198754;
+        border: none;
+        color: white;
+        cursor: pointer;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        font-size: 16px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        margin: 0 auto;
+    }
+    .btn-icon-success:hover {
+        background: #157347;
+        transform: scale(1.1);
+    }
+
+    /* Add Row Button */
+    .add-row-container {
+        padding: 15px;
+        text-align: center;
+        border-top: 1px solid #f0f0f0;
+        background: #fff;
+    }
+    .btn-add-row {
+        width: 100%;
+        border: 2px dashed #dee2e6;
+        background: transparent;
+        color: #6c757d;
+        padding: 8px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .btn-add-row:hover {
+        border-color: #0d6efd;
+        color: #0d6efd;
+        background: rgba(13, 110, 253, 0.05);
+    }
+
+    /* Footer */
+    .preview-footer {
+        padding: 15px 25px;
+        border-top: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+        background: #fff;
+        border-radius: 0 0 12px 12px;
+    }
+    .validation-error {
+        color: #d9534f;
+        margin-right: auto;
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    /* Buttons */
+    .btn-primary-custom {
+        background-color: #0d6efd;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .btn-primary-custom:hover {
+        background-color: #0b5ed7;
+        transform: translateY(-1px);
+    }
+    .btn-primary-custom:disabled {
+        background-color: #a0c3ff;
+        transform: none;
+        cursor: not-allowed;
+    }
+    .btn-secondary-custom {
+        background-color: #fff;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .btn-secondary-custom:hover {
+        background-color: #f8f9fa;
+        color: #333;
+        border-color: #c6c7c8;
+    }
+
     .invalid-cell {
-        background-color: #ffe6e6 !important;
-        color: #d9534f !important;
+        background-color: #fff5f5 !important;
         position: relative;
+    }
+    .invalid-cell input {
+        color: #dc3545;
     }
     .invalid-cell::after {
         content: "!";
         position: absolute;
-        top: 2px;
-        right: 2px;
-        font-size: 10px;
+        top: 50%;
+        right: 8px;
+        transform: translateY(-50%);
+        font-size: 12px;
         font-weight: bold;
-        color: #d9534f;
+        color: #dc3545;
+        pointer-events: none;
     }
+
+    /* Node Styles */
     .table-node {
         position: absolute;
-        width: 240px;
+        width: 280px;
         background: white;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -760,7 +1220,7 @@ style.textContent = `
         z-index: 1;
         display: flex;
         flex-direction: column;
-        max-height: 400px;
+        max-height: 600px;
         transition: box-shadow 0.2s, border-color 0.2s;
     }
     .table-node:hover {
@@ -913,6 +1373,23 @@ style.textContent = `
         stroke: #5c6bc0;
         stroke-width: 2px;
         fill: none;
+        transition: stroke 0.2s, stroke-width 0.2s;
+    }
+    .connection-name-input {
+        border: 1px solid transparent;
+        background: transparent;
+        font-weight: 600;
+        font-size: 13px;
+        color: #5c6bc0;
+        width: 100%;
+        padding: 2px 4px;
+        border-radius: 4px;
+        outline: none;
+        font-family: inherit;
+    }
+    .connection-name-input:hover, .connection-name-input:focus {
+        background: #fff;
+        border-color: #dee2e6;
     }
     
     /* Context Menu Styles */
@@ -937,6 +1414,25 @@ style.textContent = `
     .context-menu-item:hover {
         background-color: #f8f9fa;
         color: #007bff;
+    }
+
+    /* Sidebar Resizer */
+    .sidebar-resizer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 5px;
+        height: 100%;
+        cursor: col-resize;
+        background: transparent;
+        z-index: 100;
+    }
+    .sidebar-resizer:hover {
+        background: rgba(0,0,0,0.1);
+    }
+    
+    .collapsed-sidebar:hover {
+        background: #f8f9fa !important;
     }
 `;
 document.head.appendChild(style);

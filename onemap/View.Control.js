@@ -14,6 +14,69 @@ const map = L.map(
 window._efsDefaultCenter = L.latLng(40.21838483721167, 51.07054395510173);
 window._efsDefaultZoom = 14;
 
+// Map Context Menu
+const mapContextMenu = document.createElement('div');
+mapContextMenu.id = 'map-context-menu';
+mapContextMenu.style.display = 'none';
+mapContextMenu.style.position = 'absolute';
+mapContextMenu.style.zIndex = '10000';
+mapContextMenu.style.backgroundColor = 'white';
+mapContextMenu.style.border = '1px solid #ccc';
+mapContextMenu.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.2)';
+mapContextMenu.style.padding = '5px 0';
+mapContextMenu.style.borderRadius = '4px';
+mapContextMenu.style.minWidth = '120px';
+mapContextMenu.style.fontFamily = 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif';
+
+const printItem = document.createElement('div');
+printItem.innerText = '🖨️ Print Page';
+printItem.style.padding = '8px 15px';
+printItem.style.cursor = 'pointer';
+printItem.style.fontSize = '14px';
+printItem.style.color = '#333';
+printItem.style.display = 'flex';
+printItem.style.alignItems = 'center';
+printItem.style.gap = '8px';
+
+printItem.onmouseover = () => {
+    printItem.style.backgroundColor = '#f8f9fa';
+    printItem.style.color = '#007bff';
+};
+printItem.onmouseout = () => {
+    printItem.style.backgroundColor = 'white';
+    printItem.style.color = '#333';
+};
+printItem.onclick = () => {
+    window.print();
+    mapContextMenu.style.display = 'none';
+};
+
+mapContextMenu.appendChild(printItem);
+document.body.appendChild(mapContextMenu);
+
+map.on('contextmenu', function(e) {
+    mapContextMenu.style.display = 'block';
+    mapContextMenu.style.left = e.originalEvent.pageX + 'px';
+    mapContextMenu.style.top = e.originalEvent.pageY + 'px';
+    L.DomEvent.stopPropagation(e);
+});
+
+document.addEventListener('click', function(e) {
+    if (mapContextMenu.style.display === 'block' && !mapContextMenu.contains(e.target)) {
+        mapContextMenu.style.display = 'none';
+    }
+});
+
+map.on('mousedown', function() {
+    mapContextMenu.style.display = 'none';
+});
+map.on('movestart', function() {
+    mapContextMenu.style.display = 'none';
+});
+map.on('zoomstart', function() {
+    mapContextMenu.style.display = 'none';
+});
+
 // NEW: Add tile data
 var fieldContours = L.tileLayer('/tile/{z}/{x}/{y}.png', {
 	tms: true,
@@ -260,15 +323,35 @@ L.Control.BoxSelect = L.Control.extend({
         // Reset previous selection
         if (window.applyMarkerColorScheme) window.applyMarkerColorScheme();
 
+        // Clear previous labels
+        if (window._selectedWellLabels) {
+            window._selectedWellLabels.forEach(l => map.removeLayer(l));
+        }
+        window._selectedWellLabels = [];
+
         const selectedWells = [];
         map.eachLayer(layer => {
             if ((layer instanceof L.Marker || layer instanceof L.CircleMarker) && layer.options.__well_id) {
                 if (bounds.contains(layer.getLatLng())) {
-                    selectedWells.push(layer.options.__well_id);
+                    const wellName = layer.options.__well_id;
+                    selectedWells.push(wellName);
                     // Highlight
                     if (layer.setStyle) {
                         layer.setStyle({ color: '#00FF00', fillColor: '#00FF00' });
                     }
+
+                    // Add Label
+                    const label = L.marker(layer.getLatLng(), {
+                        icon: L.divIcon({
+                            className: 'selected-well-label',
+                            html: `<div style="background: rgba(255, 255, 255, 0.9); padding: 2px 6px; border: 1px solid #999; border-radius: 4px; font-size: 11px; font-weight: 600; color: #333; white-space: nowrap; transform: translate(-50%, -25px); box-shadow: 0 2px 4px rgba(0,0,0,0.2); pointer-events: none;">${wellName}</div>`,
+                            iconSize: [0, 0],
+                            iconAnchor: [0, 0]
+                        }),
+                        interactive: false,
+                        zIndexOffset: 1000
+                    }).addTo(map);
+                    window._selectedWellLabels.push(label);
                 }
             }
         });
@@ -293,6 +376,210 @@ L.Control.BoxSelect = L.Control.extend({
 });
 
 map.addControl(new L.Control.BoxSelect());
+
+// NEW: Well View Toggle Control (Dots vs Pie Charts)
+L.Control.WellViewToggle = L.Control.extend({
+    options: {
+        position: 'topleft'
+    },
+
+    onAdd: function(map) {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+        const button = L.DomUtil.create('a', 'leaflet-control-well-view', container);
+        // Use SVG for Pie Chart Icon
+        const pieIconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3V12H21Z" fill="#333"/>
+<path d="M21.0001 10C20.9463 5.63823 17.8183 2.00488 13.6667 1.12604V10H21.0001Z" fill="#666"/>
+</svg>`;
+        
+        button.innerHTML = pieIconSvg; 
+        button.href = '#';
+        button.title = 'Toggle Well View (Dots / Pie Charts)';
+        button.style.fontSize = '18px';
+        button.style.display = 'flex';
+        button.style.alignItems = 'center';
+        button.style.justifyContent = 'center';
+        button.style.cursor = 'pointer';
+        button.style.width = '30px';
+        button.style.height = '30px';
+
+        L.DomEvent.on(button, 'click', function(e) {
+            L.DomEvent.stop(e);
+            this._toggleView(button);
+        }, this);
+
+        return container;
+    },
+
+    _toggleView: function(button) {
+        // Use SVG for Pie Chart Icon
+        const pieIconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3V12H21Z" fill="#333"/>
+<path d="M21.0001 10C20.9463 5.63823 17.8183 2.00488 13.6667 1.12604V10H21.0001Z" fill="#666"/>
+</svg>`;
+
+        if (window._efsWellViewMode === 'pie') {
+            window._efsWellViewMode = 'dots';
+            L.DomUtil.removeClass(button, 'active');
+            button.innerHTML = pieIconSvg;
+            if (window.pieChartSettingsControl) {
+                window.pieChartSettingsControl.getContainer().style.display = 'none';
+            }
+        } else {
+            window._efsWellViewMode = 'pie';
+            L.DomUtil.addClass(button, 'active');
+            button.innerHTML = '●'; // Dot icon to switch back
+            if (window.pieChartSettingsControl) {
+                window.pieChartSettingsControl.getContainer().style.display = 'flex';
+            }
+        }
+        
+        // Trigger re-render
+        if (window._efsDataset && window._efsWellLayer) {
+            populateWellPointFeatureGroup(
+                window._efsDataset.wells, 
+                window._efsWellLayer, 
+                window._efsStatusColors ? window._efsStatusColors.resolve : null, 
+                window._efsWellRegistry
+            );
+            
+            // Re-apply visibility filters if needed
+            if (typeof window.applyWellVisibilityFilters === "function") {
+                window.applyWellVisibilityFilters();
+            }
+        }
+    }
+});
+
+map.addControl(new L.Control.WellViewToggle());
+window._efsWellViewMode = 'dots'; // Default
+
+// NEW: Pie Chart Settings Control
+L.Control.PieChartSettings = L.Control.extend({
+    options: {
+        position: 'topleft'
+    },
+
+    onAdd: function(map) {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom well-pie-settings');
+        container.style.backgroundColor = 'white';
+        container.style.padding = '10px';
+        container.style.display = 'none'; // Hidden by default
+        container.style.flexDirection = 'column';
+        container.style.gap = '5px';
+        container.style.minWidth = '150px';
+        container.style.border = '2px solid rgba(0,0,0,0.2)';
+        container.style.borderRadius = '4px';
+
+        // Header (Title + Close Button)
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+        header.style.marginBottom = '5px';
+        header.style.borderBottom = '1px solid #eee';
+        header.style.paddingBottom = '3px';
+
+        const title = document.createElement('div');
+        title.textContent = 'Pie Chart Settings';
+        title.style.fontWeight = 'bold';
+        title.style.fontSize = '12px';
+        
+        const closeBtn = document.createElement('div');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.fontSize = '16px';
+        closeBtn.style.fontWeight = 'bold';
+        closeBtn.style.lineHeight = '1';
+        closeBtn.title = 'Close Settings';
+        
+        closeBtn.onclick = () => {
+            container.style.display = 'none';
+        };
+
+        header.appendChild(title);
+        header.appendChild(closeBtn);
+        container.appendChild(header);
+
+        // Size Slider
+        const sizeContainer = document.createElement('div');
+        sizeContainer.style.display = 'flex';
+        sizeContainer.style.alignItems = 'center';
+        sizeContainer.style.justifyContent = 'space-between';
+        sizeContainer.style.marginBottom = '5px';
+        
+        const sizeLabel = document.createElement('label');
+        sizeLabel.textContent = 'Size:';
+        sizeLabel.style.fontSize = '11px';
+        
+        const sizeInput = document.createElement('input');
+        sizeInput.type = 'range';
+        sizeInput.min = '10';
+        sizeInput.max = '60';
+        sizeInput.value = window._efsPieSettings ? window._efsPieSettings.size : 24;
+        sizeInput.style.width = '80px';
+        sizeInput.style.cursor = 'pointer';
+        
+        sizeInput.addEventListener('input', (e) => {
+            this._updateSettings('size', parseInt(e.target.value));
+        });
+
+        sizeContainer.appendChild(sizeLabel);
+        sizeContainer.appendChild(sizeInput);
+        container.appendChild(sizeContainer);
+
+        // Toggles
+        ['showOrate', 'showGrate', 'showWrate'].forEach(key => {
+            const toggleContainer = document.createElement('div');
+            toggleContainer.style.display = 'flex';
+            toggleContainer.style.alignItems = 'center';
+            toggleContainer.style.marginTop = '3px';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = window._efsPieSettings ? window._efsPieSettings[key] : true;
+            checkbox.style.marginRight = '5px';
+            checkbox.style.cursor = 'pointer';
+            
+            checkbox.addEventListener('change', (e) => {
+                this._updateSettings(key, e.target.checked);
+            });
+
+            const label = document.createElement('label');
+            label.textContent = key === 'showOrate' ? 'Oil (Green)' : (key === 'showGrate' ? 'Gas (Red)' : 'Water (Blue)');
+            label.style.fontSize = '11px';
+            label.style.cursor = 'pointer';
+            label.onclick = () => checkbox.click();
+
+            toggleContainer.appendChild(checkbox);
+            toggleContainer.appendChild(label);
+            container.appendChild(toggleContainer);
+        });
+
+        L.DomEvent.disableClickPropagation(container);
+        return container;
+    },
+
+    _updateSettings: function(key, value) {
+        if (!window._efsPieSettings) {
+            window._efsPieSettings = { size: 24, showOrate: true, showGrate: true, showWrate: true };
+        }
+        window._efsPieSettings[key] = value;
+
+        // Trigger re-render
+        if (window._efsDataset && window._efsWellLayer) {
+            populateWellPointFeatureGroup(
+                window._efsDataset.wells, 
+                window._efsWellLayer, 
+                window._efsStatusColors ? window._efsStatusColors.resolve : null, 
+                window._efsWellRegistry
+            );
+        }
+    }
+});
+
+window.pieChartSettingsControl = new L.Control.PieChartSettings();
+map.addControl(window.pieChartSettingsControl);
 
 // Define base maps
 const basemaps = {
@@ -9359,6 +9646,82 @@ function createCustomMarker(latlng, shape, options) {
     return marker;
 }
 
+function createPieChartIcon(well, size = 24, isSelected = false) {
+    // Use global settings if available, otherwise fallback to defaults
+    const settings = window._efsPieSettings || { size: 24, showOrate: true, showGrate: true, showWrate: true };
+    const currentSize = settings.size || size;
+
+    const orate = settings.showOrate ? (parseFloat(well.orate) || 0) : 0;
+    const grate = settings.showGrate ? (parseFloat(well.grate) || 0) : 0;
+    const wrate = settings.showWrate ? (parseFloat(well.wrate) || 0) : 0;
+    const total = orate + grate + wrate;
+
+    if (total <= 0) {
+        // Fallback to a simple circle if no data
+        const strokeColor = isSelected ? 'purple' : '#666';
+        const strokeWidth = isSelected ? '3px' : '1px';
+        return L.divIcon({
+            className: 'well-pie-chart-empty',
+            html: `<div style="width:${currentSize}px; height:${currentSize}px; background:#ccc; border-radius:50%; border:${strokeWidth} solid ${strokeColor};"></div>`,
+            iconSize: [currentSize, currentSize],
+            iconAnchor: [currentSize/2, currentSize/2]
+        });
+    }
+
+    // Colors: Oil (Green), Gas (Red), Water (Blue)
+    let startAngle = 0;
+    const radius = currentSize / 2;
+    const center = currentSize / 2;
+    
+    const slices = [
+        { value: orate, color: '#2ecc71', label: 'Oil' },
+        { value: grate, color: '#e74c3c', label: 'Gas' },
+        { value: wrate, color: '#3498db', label: 'Water' }
+    ];
+
+    let svgContent = '';
+    
+    slices.forEach(slice => {
+        if (slice.value > 0) {
+            const angle = (slice.value / total) * 360;
+            const endAngle = startAngle + angle;
+            
+            // Calculate path
+            const x1 = center + radius * Math.cos(Math.PI * startAngle / 180);
+            const y1 = center + radius * Math.sin(Math.PI * startAngle / 180);
+            const x2 = center + radius * Math.cos(Math.PI * endAngle / 180);
+            const y2 = center + radius * Math.sin(Math.PI * endAngle / 180);
+            
+            // Large arc flag
+            const largeArc = angle > 180 ? 1 : 0;
+            
+            // Path command
+            // M center,center L x1,y1 A radius,radius 0 largeArc,1 x2,y2 Z
+            // Note: If angle is 360, we draw a circle instead
+            if (angle >= 359.9) {
+                svgContent += `<circle cx="${center}" cy="${center}" r="${radius}" fill="${slice.color}" stroke="none" />`;
+            } else {
+                const d = `M ${center},${center} L ${x1},${y1} A ${radius},${radius} 0 ${largeArc},1 ${x2},${y2} Z`;
+                svgContent += `<path d="${d}" fill="${slice.color}" stroke="none" />`;
+            }
+            
+            startAngle = endAngle;
+        }
+    });
+    
+    // Add a border circle
+    const strokeColor = isSelected ? 'purple' : '#333';
+    const strokeWidth = isSelected ? 3 : 1;
+    svgContent += `<circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" />`;
+
+    return L.divIcon({
+        className: 'well-pie-chart-icon',
+        html: `<svg width="${currentSize}" height="${currentSize}" viewBox="0 0 ${currentSize} ${currentSize}" style="transform: rotate(-90deg); overflow: visible;">${svgContent}</svg>`,
+        iconSize: [currentSize, currentSize],
+        iconAnchor: [currentSize/2, currentSize/2]
+    });
+}
+
 function populateWellPointFeatureGroup(wells, group, statusColorFn, registry) {
 	if (registry && typeof registry.clear === "function") {
 		registry.clear();
@@ -9393,40 +9756,46 @@ function populateWellPointFeatureGroup(wells, group, statusColorFn, registry) {
 
         let marker;
         
-        const otypeKey = w.otype ? w.otype.toLowerCase() : null;
-        let customStyle = (window._efsOtypeStyles && otypeKey && window._efsOtypeStyles[otypeKey]) 
-                            ? window._efsOtypeStyles[otypeKey] 
-                            : null;
-        
-        // Override custom style color if selected
-        if (isSelected && customStyle) {
-            customStyle = { ...customStyle, color: 'purple' };
-        }
-
-        if (customStyle) {
-             marker = createCustomMarker([w.lat, w.lon], customStyle.shape, {
-                color: customStyle.color || colorToUse,
-                fillColor: customStyle.color || colorToUse,
-                fillOpacity: 1.0,
-                radius: 4
-            });
+        // Check View Mode
+        if (window._efsWellViewMode === 'pie') {
+            const icon = createPieChartIcon(w, undefined, isSelected);
+            marker = L.marker([w.lat, w.lon], { icon: icon });
         } else {
-            // Check for Injector (Upside Down Triangle) vs Producer (Circle)
-            if (w.otype && /inject/i.test(w.otype)) {
-                marker = createCustomMarker([w.lat, w.lon], 'triangle', {
-                    color: colorToUse,
-                    fillColor: colorToUse,
+            const otypeKey = w.otype ? w.otype.toLowerCase() : null;
+            let customStyle = (window._efsOtypeStyles && otypeKey && window._efsOtypeStyles[otypeKey]) 
+                                ? window._efsOtypeStyles[otypeKey] 
+                                : null;
+            
+            // Override custom style color if selected
+            if (isSelected && customStyle) {
+                customStyle = { ...customStyle, color: 'purple' };
+            }
+
+            if (customStyle) {
+                 marker = createCustomMarker([w.lat, w.lon], customStyle.shape, {
+                    color: customStyle.color || colorToUse,
+                    fillColor: customStyle.color || colorToUse,
                     fillOpacity: 1.0,
                     radius: 4
                 });
             } else {
-                // Default to Circle (Producer)
-                marker = createCustomMarker([w.lat, w.lon], 'circle', {
-                    color: colorToUse,
-                    fillColor: colorToUse,
-                    fillOpacity: 1.0,
-                    radius: 4
-                });
+                // Check for Injector (Upside Down Triangle) vs Producer (Circle)
+                if (w.otype && /inject/i.test(w.otype)) {
+                    marker = createCustomMarker([w.lat, w.lon], 'triangle', {
+                        color: colorToUse,
+                        fillColor: colorToUse,
+                        fillOpacity: 1.0,
+                        radius: 4
+                    });
+                } else {
+                    // Default to Circle (Producer)
+                    marker = createCustomMarker([w.lat, w.lon], 'circle', {
+                        color: colorToUse,
+                        fillColor: colorToUse,
+                        fillOpacity: 1.0,
+                        radius: 4
+                    });
+                }
             }
         }
 
@@ -9440,7 +9809,9 @@ function populateWellPointFeatureGroup(wells, group, statusColorFn, registry) {
             (w.fluid ? `<br/>Fluid: ${w.fluid}` : "") +
             (w.spud_date ? `<br/>Spud Date: ${w.spud_date}` : "") +
             `<br/>Lat: ${w.lat.toFixed(4)}` +
-            `<br/>Lon: ${w.lon.toFixed(4)}`
+            `<br/>Lon: ${w.lon.toFixed(4)}` +
+            (window._efsWellViewMode === 'pie' ? 
+                `<hr/><b>Rates:</b><br/>Oil: ${w.orate || 0}<br/>Gas: ${w.grate || 0}<br/>Water: ${w.wrate || 0}` : "")
 		)
 		.addTo(group);
 		marker.options.__well_id = wellName;
@@ -10720,54 +11091,33 @@ function createWellSelectorWidget(mapInstance, wellNames) {
 
 		clearHighlight();
 
+        // Trigger re-render to update marker styles (highlighting)
+        if (window._efsDataset && window._efsWellLayer) {
+             populateWellPointFeatureGroup(
+                window._efsDataset.wells, 
+                window._efsWellLayer, 
+                window._efsStatusColors ? window._efsStatusColors.resolve : null, 
+                window._efsWellRegistry
+            );
+            
+            // Re-apply visibility filters if needed
+            if (typeof window.applyWellVisibilityFilters === "function") {
+                window.applyWellVisibilityFilters();
+            }
+        }
+
 		if (activeWells.length > 0) {
             const bounds = L.latLngBounds();
             const activeWellsLower = activeWells.map(w => String(w).toLowerCase());
             
-			mapInstance.eachLayer(layer => {
-				if ((layer instanceof L.CircleMarker || layer instanceof L.Marker) && layer.options && layer.options.searchKey) {
-					const key = (layer.options.searchKey || '').toLowerCase();
-					if (activeWellsLower.includes(key)) {
-						// Highlight the marker visually
-                        if (typeof layer.setStyle === 'function') {
-						    layer.setStyle({ fillOpacity: 1, weight: 3 });
-                        }
-                        
-                        if (typeof layer.bringToFront === 'function') {
-						    layer.bringToFront();
-                        } else if (typeof layer.setZIndexOffset === 'function') {
-                            layer.setZIndexOffset(1000);
-                        }
-						
-						// Add red circle highlight around the marker
-						const latlng = layer.getLatLng();
-						const highlightCircle = L.circleMarker(latlng, {
-							color: 'white', // White border for contrast
-							fillColor: 'purple',
-							fillOpacity: 1, // Solid purple
-							weight: 2,
-							radius: 6, // Slightly larger than normal markers (4)
-							interactive: false
-						});
-                        
-                        // NEW: Attach well ID to highlight for filtering checks
-                        highlightCircle._efsWellId = layer.options.searchKey;
-                        window._efsHighlightedMarkers.addLayer(highlightCircle);
-                        
-                        bounds.extend(latlng);
-						
-						// Open popup if only one selected
-                        if (activeWells.length === 1 && layer._popup) {
-                            layer.openPopup();
-                        }
-					} else {
-						// Reset other markers to default style
-						if (layer._defaultStyle) {
-							layer.setStyle(layer._defaultStyle);
-						}
-					}
-				}
-			});
+            // Find wells in dataset to get coordinates for zooming
+            if (window._efsDataset && window._efsDataset.wells) {
+                window._efsDataset.wells.forEach(w => {
+                    if (activeWellsLower.includes(String(w.well).toLowerCase())) {
+                        bounds.extend([w.lat, w.lon]);
+                    }
+                });
+            }
             
             if (bounds.isValid()) {
                 // Zoom to bounds
@@ -10775,13 +11125,9 @@ function createWellSelectorWidget(mapInstance, wellNames) {
             }
 
             // Show details sidebar for one or multiple wells
-            if (activeWells.length > 0) {
-                if (typeof showWellDetails === 'function') {
-                    // Pass single ID if one, else pass array
-                    showWellDetails(activeWells.length === 1 ? activeWells[0] : activeWells);
-                }
-            } else {
-                if (details_sidebar) details_sidebar.hide();
+            if (typeof showWellDetails === 'function') {
+                // Pass single ID if one, else pass array
+                showWellDetails(activeWells.length === 1 ? activeWells[0] : activeWells);
             }
             
 		} else {
@@ -11983,9 +12329,8 @@ window.addGlobalDashboardTab = function(name, color) {
     // Delete Button
     const deleteBtn = document.createElement('span');
     deleteBtn.innerHTML = '&times;';
-    deleteBtn.style.cssText = "cursor: pointer; color: #999; font-weight: bold; font-size: 14px; line-height: 1; margin-left: 5px;";
-    deleteBtn.onmouseover = () => deleteBtn.style.color = 'red';
-    deleteBtn.onmouseout = () => deleteBtn.style.color = '#999';
+    deleteBtn.className = 'close-tab-btn'; // Use class for styling
+    // Removed inline styles to allow CSS to control appearance
     deleteBtn.onclick = (e) => {
         e.stopPropagation();
         e.preventDefault(); // Prevent tab switch
