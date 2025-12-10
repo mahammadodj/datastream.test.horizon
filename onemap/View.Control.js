@@ -7458,7 +7458,14 @@ async function showWellDetails(wellId, options = {}) {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',
-                minWidth: '150px'
+                minWidth: '150px',
+                maxHeight: '60vh',
+                overflowY: 'auto',
+                padding: '10px',
+                backgroundColor: 'white',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
             });
             
             const title = document.createElement('div');
@@ -7492,64 +7499,70 @@ async function showWellDetails(wellId, options = {}) {
             legendRow.appendChild(legendToggle);
             settingsPanel.appendChild(legendRow);
 
-            valueKeys.forEach(key => {
-                const row = document.createElement('div');
-                row.style.display = 'flex';
-                row.style.alignItems = 'center';
-                row.style.justifyContent = 'space-between';
-                row.style.gap = '10px';
-                
-                const label = document.createElement('span');
-                label.textContent = rateColumns[key] || key;
-                label.style.fontSize = '12px';
-                label.style.flexGrow = '1';
-                
-                // Color Picker
-                const colorInput = document.createElement('input');
-                colorInput.type = 'color';
-                colorInput.value = lineColors[key];
-                colorInput.style.border = 'none';
-                colorInput.style.width = '20px';
-                colorInput.style.height = '20px';
-                colorInput.style.cursor = 'pointer';
-                colorInput.style.padding = '0';
-                colorInput.style.backgroundColor = 'transparent';
-                
-                colorInput.addEventListener('input', (e) => {
-                    lineColors[key] = e.target.value;
-                    updateChart();
-                });
+            const currentChart = options.isSubChart ? canvas._chartInstance : productionChart;
+            if (currentChart) {
+                currentChart.data.datasets.forEach(ds => {
+                    const key = ds._param;
+                    if (!key) return;
 
-                // Style Selector
-                const styleSelect = document.createElement('select');
-                styleSelect.style.fontSize = '11px';
-                styleSelect.style.padding = '1px';
-                
-                const styles = [
-                    { value: 'solid', text: 'Solid' },
-                    { value: 'dashed', text: 'Dashed' },
-                    { value: 'dotted', text: 'Dotted' },
-                    { value: 'dashdot', text: 'Dash-Dot' }
-                ];
-                
-                styles.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s.value;
-                    opt.textContent = s.text;
-                    if (lineStyles[key] === s.value) opt.selected = true;
-                    styleSelect.appendChild(opt);
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.alignItems = 'center';
+                    row.style.justifyContent = 'space-between';
+                    row.style.gap = '10px';
+                    
+                    const label = document.createElement('span');
+                    label.textContent = ds.label;
+                    label.style.fontSize = '12px';
+                    label.style.flexGrow = '1';
+                    
+                    // Color Picker
+                    const colorInput = document.createElement('input');
+                    colorInput.type = 'color';
+                    colorInput.value = lineColors[key] || ds.borderColor;
+                    colorInput.style.border = 'none';
+                    colorInput.style.width = '20px';
+                    colorInput.style.height = '20px';
+                    colorInput.style.cursor = 'pointer';
+                    colorInput.style.padding = '0';
+                    colorInput.style.backgroundColor = 'transparent';
+                    
+                    colorInput.addEventListener('input', (e) => {
+                        lineColors[key] = e.target.value;
+                        updateChart();
+                    });
+
+                    // Style Selector
+                    const styleSelect = document.createElement('select');
+                    styleSelect.style.fontSize = '11px';
+                    styleSelect.style.padding = '1px';
+                    
+                    const styles = [
+                        { value: 'solid', text: 'Solid' },
+                        { value: 'dashed', text: 'Dashed' },
+                        { value: 'dotted', text: 'Dotted' },
+                        { value: 'dashdot', text: 'Dash-Dot' }
+                    ];
+                    
+                    styles.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.value;
+                        opt.textContent = s.text;
+                        if (lineStyles[key] === s.value) opt.selected = true;
+                        styleSelect.appendChild(opt);
+                    });
+                    
+                    styleSelect.addEventListener('change', (e) => {
+                        lineStyles[key] = e.target.value;
+                        updateChart();
+                    });
+                    
+                    row.appendChild(label);
+                    row.appendChild(styleSelect);
+                    row.appendChild(colorInput);
+                    settingsPanel.appendChild(row);
                 });
-                
-                styleSelect.addEventListener('change', (e) => {
-                    lineStyles[key] = e.target.value;
-                    updateChart();
-                });
-                
-                row.appendChild(label);
-                row.appendChild(styleSelect);
-                row.appendChild(colorInput);
-                settingsPanel.appendChild(row);
-            });
+            }
             
             document.body.appendChild(settingsPanel);
             
@@ -7590,47 +7603,48 @@ async function showWellDetails(wellId, options = {}) {
             });
         }
 
+        function createDataset(key) {
+            const color = lineColors[key];
+            const style = lineStyles[key];
+            let borderDash = [];
+            
+            if (style === 'dashed') borderDash = [5, 5];
+            else if (style === 'dotted') borderDash = [2, 2];
+            else if (style === 'dashdot') borderDash = [10, 5, 2, 5];
+
+            let yAxisID = 'y'; // Default
+
+            if (key === 'orate') {
+                yAxisID = 'y-oil';
+            }
+            else if (key === 'wrate') {
+                yAxisID = 'y-water';
+            }
+            else if (key === 'grate') {
+                yAxisID = 'y-gas';
+            }
+            else {
+                yAxisID = 'y';
+            }
+
+            return {
+                label: rateColumns[key] || key,
+                data: data.map(d => d[key]),
+                borderColor: color,
+                backgroundColor: 'transparent',
+                pointBackgroundColor: color,
+                borderWidth: 2,
+                borderDash: borderDash,
+                tension: 0,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                yAxisID: yAxisID,
+                _param: key // Store param for drag-and-drop
+            };
+        }
+
         function getChartData() {
-            // const activeKeys = valueKeys.filter(k => selectedRates.has(k));
-            return valueKeys.map((key, index) => {
-                const color = lineColors[key];
-                const style = lineStyles[key];
-                let borderDash = [];
-                
-                if (style === 'dashed') borderDash = [5, 5];
-                else if (style === 'dotted') borderDash = [2, 2];
-                else if (style === 'dashdot') borderDash = [10, 5, 2, 5];
-
-                let yAxisID = 'y'; // Default
-
-                if (key === 'orate') {
-                    yAxisID = 'y-oil';
-                }
-                else if (key === 'wrate') {
-                    yAxisID = 'y-water';
-                }
-                else if (key === 'grate') {
-                    yAxisID = 'y-gas';
-                }
-                else {
-                    yAxisID = 'y';
-                }
-
-                return {
-                    label: rateColumns[key] || key,
-                    data: data.map(d => d[key]),
-                    borderColor: color,
-                    backgroundColor: 'transparent',
-                    pointBackgroundColor: color,
-                    borderWidth: 2,
-                    borderDash: borderDash,
-                    tension: 0,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    yAxisID: yAxisID,
-                    _param: key // Store param for drag-and-drop
-                };
-            });
+            return valueKeys.map(key => createDataset(key));
         }
 
         function openFullViewChart() {
@@ -8063,6 +8077,94 @@ async function showWellDetails(wellId, options = {}) {
             };
         }
 
+        function showAddParamMenu(event, chart, wrapper) {
+            // Remove existing menu
+            const existing = document.getElementById('param-add-menu');
+            if (existing) existing.remove();
+
+            const menu = document.createElement('div');
+            menu.id = 'param-add-menu';
+            menu.style.position = 'absolute';
+            menu.style.left = event.clientX + 'px';
+            menu.style.top = event.clientY + 'px';
+            menu.style.background = 'white';
+            menu.style.border = '1px solid #ccc';
+            menu.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+            menu.style.zIndex = '10000';
+            menu.style.maxHeight = '300px';
+            menu.style.overflowY = 'auto';
+            menu.style.padding = '5px 0';
+            menu.style.borderRadius = '4px';
+
+            // Filter keys
+            const currentParams = new Set(chart.data.datasets.map(ds => ds._param));
+            const availableKeys = keys.filter(k => k !== dateKey && typeof data[0][k] === 'number' && !/id|well/i.test(k) && !currentParams.has(k));
+
+            if (availableKeys.length === 0) {
+                const item = document.createElement('div');
+                item.textContent = 'No other parameters available';
+                item.style.padding = '5px 15px';
+                item.style.color = '#999';
+                menu.appendChild(item);
+            } else {
+                availableKeys.forEach(key => {
+                    const item = document.createElement('div');
+                    item.textContent = key;
+                    item.style.padding = '5px 15px';
+                    item.style.cursor = 'pointer';
+                    item.style.fontSize = '13px';
+                    item.style.color = '#333';
+                    
+                    item.onmouseover = () => item.style.background = '#f0f0f0';
+                    item.onmouseout = () => item.style.background = 'white';
+                    
+                    item.onclick = () => {
+                        // Add parameter
+                        if (chart === productionChart || (window.fullChart && chart === window.fullChart)) {
+                            if (!valueKeys.includes(key)) {
+                                valueKeys.push(key);
+                                // Ensure color exists
+                                if (!lineColors[key]) {
+                                     lineColors[key] = ['#f1c40f', '#9b59b6', '#95a5a6', '#34495e', '#16a085', '#27ae60', '#2980b9', '#8e44ad', '#2c3e50', '#f39c12', '#d35400', '#c0392b', '#bdc3c7', '#7f8c8d'][valueKeys.length % 14];
+                                }
+                                if (!lineStyles[key]) lineStyles[key] = 'solid';
+                                updateChart();
+                            }
+                        } else {
+                            // Extra chart
+                            // Ensure color exists
+                            if (!lineColors[key]) {
+                                 lineColors[key] = ['#f1c40f', '#9b59b6', '#95a5a6', '#34495e', '#16a085', '#27ae60', '#2980b9', '#8e44ad', '#2c3e50', '#f39c12', '#d35400', '#c0392b', '#bdc3c7', '#7f8c8d'][Math.floor(Math.random() * 14)];
+                            }
+                            if (!lineStyles[key]) lineStyles[key] = 'solid';
+                            
+                            const newDs = createDataset(key);
+                            chart.data.datasets.push(newDs);
+                            chart.update();
+                            updateChartTags(wrapper, chart);
+                            ZoomControlManager.create(chart, wrapper);
+                            saveExtraChartsState();
+                        }
+                        menu.remove();
+                    };
+                    menu.appendChild(item);
+                });
+            }
+
+            document.body.appendChild(menu);
+
+            // Close on click outside
+            setTimeout(() => {
+                const closeMenu = (e) => {
+                    if (!menu.contains(e.target)) {
+                        menu.remove();
+                        document.removeEventListener('click', closeMenu);
+                    }
+                };
+                document.addEventListener('click', closeMenu);
+            }, 0);
+        }
+
         function updateChartTags(wrapper, chart) {
             let tagsContainer = wrapper.querySelector('.chart-tags-container');
             if (!tagsContainer) {
@@ -8161,6 +8263,25 @@ async function showWellDetails(wellId, options = {}) {
                 
                 tagsContainer.appendChild(tag);
             });
+
+            // Check availability
+            const currentParams = new Set(chart.data.datasets.map(ds => ds._param));
+            const availableKeys = keys.filter(k => k !== dateKey && typeof data[0][k] === 'number' && !/id|well/i.test(k) && !currentParams.has(k));
+
+            if (availableKeys.length > 0) {
+                // Add "+" button
+                const addBtn = document.createElement('div');
+                addBtn.className = 'chart-series-tag add-param-btn';
+                addBtn.title = 'Add parameter';
+                addBtn.innerHTML = '&#43;'; // +
+                addBtn.style.cursor = 'pointer';
+                addBtn.style.fontWeight = 'bold';
+                addBtn.style.padding = '2px 6px';
+                addBtn.onclick = (e) => {
+                    showAddParamMenu(e, chart, wrapper);
+                };
+                tagsContainer.appendChild(addBtn);
+            }
         }
 
 
