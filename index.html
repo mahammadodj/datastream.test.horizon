@@ -15,6 +15,11 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.2/dist/leaflet-search.min.css" integrity="sha384-REIuC/quYqJV/qB1xEce8EVloOP7BrMb8UptyzM97otOZeYzO/aI0bVbcd5mlhFP" crossorigin="anonymous" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ljagis/leaflet-measure@2.1.7/dist/leaflet-measure.min.css" integrity="sha384-QTv0u/5n8tVESSKG35OMKsPun/jF/OeSLSo2PNPV/rk9/IsMXbCgxgugGVmsCPVZ" crossorigin="anonymous"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <script src="https://jsuites.net/v4/jsuites.js"></script>
+  <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
+  <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
+  <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
+  <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Outlined|Material+Icons+Two+Tone|Material+Icons+Round|Material+Icons+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="/onemap/onemap.css"/>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous" defer></script>
@@ -37,6 +42,9 @@
     </li>
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-content" type="button" role="tab" aria-controls="dashboard-content" aria-selected="false">Analytical Dashboard</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="fusion-tab" data-bs-toggle="tab" data-bs-target="#fusion-content" type="button" role="tab" aria-controls="fusion-content" aria-selected="false">Fusion Sheet</button>
     </li>
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="add-global-tab" type="button" aria-label="Add Tab">+</button>
@@ -65,8 +73,43 @@
     </div>
 
     <!-- Analytical Dashboard Tab -->
-    <div class="tab-pane fade" id="dashboard-content" role="tabpanel" aria-labelledby="dashboard-tab" style="height: 100%; padding: 20px;">
-      <!-- Content will be added later -->
+    <div class="tab-pane fade" id="dashboard-content" role="tabpanel" aria-labelledby="dashboard-tab" style="height: 100%; padding: 0;">
+      <div class="dashboard-container" style="display: flex; height: 100%; width: 100%; overflow: hidden;">
+        <!-- Left Sidebar -->
+        <div id="dashboard-sidebar" class="dashboard-sidebar">
+            <div class="dashboard-sidebar-header">
+                <span class="sidebar-title">Components</span>
+                <button id="dashboard-sidebar-toggle" class="sidebar-toggle-btn">
+                    <i class="material-icons">chevron_left</i>
+                </button>
+            </div>
+            <div id="dashboard-widget-list" class="dashboard-sidebar-content">
+                <!-- Widgets will be injected here -->
+            </div>
+            <!-- Resizer Handle -->
+            <div id="dashboard-sidebar-resizer" class="dashboard-resizer"></div>
+        </div>
+        
+        <!-- Collapsed Sidebar Placeholder -->
+        <div id="dashboard-sidebar-collapsed" class="dashboard-sidebar-collapsed">
+             <button id="dashboard-sidebar-expand" class="sidebar-toggle-btn">
+                <i class="material-icons">chevron_right</i>
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="dashboard-main">
+            <div class="dashboard-empty-state">
+                <h3>Dashboard Canvas</h3>
+                <p>Select components from the sidebar</p>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fusion Sheet Tab -->
+    <div class="tab-pane fade" id="fusion-content" role="tabpanel" aria-labelledby="fusion-tab" style="height: 100%; padding: 20px; overflow: hidden;">
+      <div id="fusion-sheet-container" style="width: 100%; height: 100%; overflow: auto;"></div>
     </div>
   </div>
 
@@ -91,5 +134,7 @@
   <script src="/onemap/View.Control.js" defer></script>
   <script src="/onemap/Marker.Settings.js" defer></script>
   <script src="/onemap/DatasetLineage.js" defer></script>
+  <script src="/onemap/FusionSheet.js" defer></script>
+  <script src="/onemap/Dashboard.js" defer></script>
 </body>
 </html>

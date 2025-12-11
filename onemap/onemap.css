@@ -1,1001 +1,2935 @@
 #onemap-map {
+
   position: relative;
+
   width: 100%;
+
   height: 100%;
+
   /* min-height: 100vh; Removed to fit in tab */
+
   left: 0;
+
   top: 0;
+
 }
+
+
 
 .well-search-control .search-input{
+
   width: 240px;
+
 }
+
+
 
 .well-search-control .search-tooltip {
+
   width: 220px;
+
   overflow-y: auto;
+
 }
+
+
 
 .well-search-control,
+
 .well-search-tooltip {
+
   z-index: 1200 !important;
+
 }
+
+
 
 .horizon-search-control .search-input{
+
   width: 240px;
+
 }
+
+
 
 .horizon-search-control .search-tooltip {
+
   width: 220px;
+
   overflow-y: auto;
+
 }
+
+
 
 .horizon-search-control,
+
 .horizon-search-tooltip {
+
   z-index: 1100;
+
 }
 
+
+
 .leaflet-container {
+
   font-size: 1rem;
+
   background-color: #aad3df; /* Match OSM ocean color */
+
 }
+
+
 
 html,
+
 body {
+
   width: 100%;
+
   height: 100%;
+
   margin: 0;
+
   padding: 0;
+
 }
+
+
 
 .leaflet-control-recenter {
+
   background: transparent;
+
   border: 0;
+
   box-shadow: none;
+
   margin: 6px;
+
 }
+
+
 
 .leaflet-control-recenter .recenter-btn {
+
   --rc-size: 36px;
+
   --rc-bg: rgba(28, 28, 30, 0.88);
+
   --rc-bg-hover: rgba(28, 28, 30, 0.96);
+
   --rc-color: #fff;
+
   width: var(--rc-size);
+
   height: var(--rc-size);
+
   display: grid;
+
   place-items: center;
+
   border-radius: 9999px;
+
   background: var(--rc-bg);
+
   color: var(--rc-color);
+
   text-decoration: none;
+
   line-height: 0;
+
   cursor: pointer;
+
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+
   transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+
   -webkit-tap-highlight-color: transparent;
+
 }
+
+
 
 .leaflet-control-recenter .recenter-btn svg {
+
   width: 18px;
+
   height: 18px;
+
   display: block;
+
 }
+
+
 
 .leaflet-control-recenter .recenter-btn:hover {
+
   transform: scale(1.08);
+
   background: var(--rc-bg-hover);
+
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+
 }
+
+
 
 .leaflet-control-recenter .recenter-btn:active {
+
   transform: scale(0.98);
+
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45) inset;
+
 }
+
+
 
 .leaflet-control-recenter .recenter-btn:focus-visible {
+
   outline: 2px solid #60a5fa;
+
   outline-offset: 2px;
+
 }
+
+
 
 .sidebar-hint {
+
   font-size: 0.85em;
+
   color: #666;
+
   margin-top: 10px;
+
   font-style: italic;
+
 }
+
+
 
 /* Dark Mode Support for Dashboard Buttons */
+
 .dashboard-action-btn {
+
     padding: 5px 10px;
+
     background-color: #fff;
+
     border: 2px solid rgba(0,0,0,0.2);
+
     border-radius: 5px;
+
     cursor: pointer;
+
     font-size: 12px;
+
     font-weight: bold;
+
     color: #333;
+
     box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+
     height: 34px;
+
     display: none; /* Initially hidden */
+
     align-items: center;
+
     gap: 5px;
+
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+
 }
+
+
 
 .dashboard-action-btn:hover {
+
     background-color: #f0f0f0;
+
 }
+
+
 
 body.dark-theme .dashboard-action-btn {
+
     background-color: #333;
+
     color: #eee;
+
     border-color: rgba(255, 255, 255, 0.2);
+
 }
+
+
 
 body.dark-theme .dashboard-action-btn:hover {
+
     background-color: #444;
+
 }
+
+
 
 .efs-col {
+
   border: 1px solid #e3e3e3;
+
   border-radius: 8px;
+
   padding: 8px 10px;
+
   margin-bottom: 10px;
+
   background: #fff;
+
 }
+
+
 
 .efs-head {
+
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
+
   gap: 8px;
+
   margin-bottom: 6px;
+
 }
+
+
 
 .efs-title {
+
   font-weight: 600;
+
 }
+
+
 
 .efs-search {
+
   width: 100%;
+
   padding: 6px 8px;
+
   border: 1px solid #d0d0d0;
+
   border-radius: 6px;
+
   font-size: 12px;
+
 }
+
+
 
 .efs-list {
+
   margin-top: 6px;
+
   border: 1px solid #eee;
+
   border-radius: 6px;
+
   max-height: 220px;
+
   overflow: auto;
+
 }
+
+
 
 .efs-item {
+
   display: flex;
+
   align-items: center;
+
   gap: 6px;
+
   padding: 6px 8px;
+
   border-bottom: 1px solid #f5f5f5;
+
   font-size: 13px;
+
 }
+
+
 
 .efs-item:last-child {
+
   border-bottom: none;
+
 }
+
+
 
 .efs-count {
+
   color: #666;
+
   margin-left: auto;
+
   font-variant-numeric: tabular-nums;
+
 }
+
+
 
 .efs-btn {
+
   padding: 6px 10px;
+
   border: 1px solid #ccc;
+
   border-radius: 6px;
+
   background: #f7f7f7;
+
   cursor: pointer;
+
 }
+
+
 
 .efs-btn:hover {
+
   background: #efefef;
+
 }
+
+
 
 .efs-range {
+
   display: flex;
+
   flex-direction: column;
+
   gap: 8px;
+
   padding-bottom: 20px;
+
 }
+
+
 
 .efs-range-values {
+
   display: flex;
+
   justify-content: space-between;
+
   font-variant-numeric: tabular-nums;
+
   font-size: 12px;
+
   color: #555;
+
 }
+
+
 
 .efs-range-inputs {
+
   display: flex;
+
   flex-direction: column;
+
   gap: 6px;
+
 }
+
+
 
 .efs-range-inputs input[type="range"] {
+
   width: 100%;
+
   accent-color: #2c7be5;
+
 }
+
+
 
 .efs-range-slider{
+
   top: 8px;
+
   height: 5px;
+
   border-radius: 5px;
+
   background: #ddd;
+
   position: relative;
+
 }
+
+
 
 .efs-range-progress{
+
   height: 5px;
+
   left: 0%;
+
   right: 0%;
+
   position: absolute;
+
   border-radius: 5px;
+
   background: #0075ff;
+
 }
+
+
 
 .efs-include-null {
+
   display: flex;
+
   align-items: center;
+
   gap: 6px;
+
   margin-top: 8px;
+
   font-size: 12px;
+
   color: #555;
+
   cursor: pointer;
+
 }
+
+
 
 .efs-include-null input[type="checkbox"] {
+
   width: 14px;
+
   height: 14px;
+
   accent-color: #2c7be5;
+
 }
+
+
 
 .efs-range-pointers{
+
   position: relative;
+
 }
+
+
 
 .efs-range-pointers input{
+
   position: absolute;
+
   top: -5px;
+
   height: 5px;
+
   width: 100%;
+
   background: none;
+
   pointer-events: none;
+
   -webkit-appearance: none;
+
   appearance: none;
+
   z-index: 1;
+
 }
+
+
 
 .efs-range-pointers input.is-top{
+
   z-index: 2;
+
 }
+
+
 
 input[type="range"]::-webkit-slider-thumb {
+
   height: 17px;
+
   width: 17px;
+
   border: 1px solid #666;
+
   border-radius: 50%;
+
   pointer-events: auto;
+
   -webkit-appearance: none;
+
   appearance: none;
+
   background: #0075ff;
+
   cursor: pointer;
+
 }
+
+
 
 input[type="range"]::-moz-range-thumb {
+
   height: 17px;
+
   width: 17px;
+
   border: 1px solid #666;
+
   border-radius: 50%;
+
   pointer-events: auto;
+
   -moz-appearance: none;
+
   appearance: none;
+
   background: #0075ff;
+
   cursor: pointer;
+
 }
+
+
 
 .marker-settings-panel {
+
   display: flex;
+
   flex-direction: column;
+
   gap: 16px;
+
   font-size: 14px;
+
 }
+
+
 
 .marker-settings-field {
+
   display: flex;
+
   flex-direction: column;
+
   gap: 8px;
+
 }
+
+
 
 .marker-settings-control {
+
   display: flex;
+
   align-items: center;
+
   gap: 12px;
+
   flex-wrap: wrap;
+
 }
+
+
 
 .marker-settings-label {
+
   font-weight: 600;
+
 }
+
+
 
 .marker-settings-select {
+
   padding: 6px 10px;
+
   border: 1px solid #c9c9c9;
+
   border-radius: 6px;
+
   font-size: 14px;
+
   min-width: 200px;
+
 }
+
+
 
 .marker-settings-select:focus {
+
   outline: 2px solid #60a5fa;
+
   outline-offset: 2px;
+
 }
+
+
 
 .marker-settings-reset {
+
   padding: 6px 12px;
+
   border: 1px solid #cfcfcf;
+
   border-radius: 6px;
+
   background: #f6f6f6;
+
   cursor: pointer;
+
   font-size: 13px;
+
 }
+
+
 
 .marker-settings-reset:hover {
+
   background: #ebebeb;
+
 }
+
+
 
 .marker-settings-placeholder {
+
   color: #666;
+
 }
+
+
 
 .marker-settings-list {
+
   display: flex;
+
   flex-direction: column;
+
   gap: 8px;
+
   max-height: 260px;
+
   overflow-y: auto;
+
   padding-right: 4px;
+
 }
+
+
 
 .marker-color-row {
+
   display: grid;
+
   grid-template-columns: auto 1fr auto;
+
   gap: 12px;
+
   align-items: center;
+
   padding: 6px 10px;
+
   border: 1px solid #e1e1e1;
+
   border-radius: 6px;
+
   background: #fafafa;
+
 }
+
+
 
 .marker-color-input {
+
   width: 44px;
+
   height: 28px;
+
   border: none;
+
   background: transparent;
+
   cursor: pointer;
+
 }
+
+
 
 .marker-color-label {
+
   font-size: 14px;
+
   font-weight: 500;
+
 }
+
+
 
 .marker-color-count {
+
   font-size: 13px;
+
   color: #666;
+
   font-variant-numeric: tabular-nums;
+
 }
+
+
 
 /* Fix for white grid lines between tiles (sub-pixel rendering artifacts) */
+
 .leaflet-container {
+
     background-color: #aad3df; /* Match OSM ocean color */
+
 }
+
+
 
 /* Dark Theme Overrides */
+
 .dark-theme .leaflet-container {
+
     background-color: #1e1e1e; /* Match dark theme background */
+
 }
+
+
 
 .dark-theme .efs-col {
+
   background: #2c2c2c;
+
   border-color: #444;
+
   color: #eee;
+
 }
+
+
 
 .dark-theme .efs-title {
+
   color: #fff;
+
 }
+
+
 
 .dark-theme .efs-range-values {
+
   color: #ccc;
+
 }
+
+
 
 .dark-theme .efs-include-null {
+
   color: #ccc;
+
 }
+
+
 
 .dark-theme .efs-count {
+
   color: #aaa;
+
 }
+
+
 
 .dark-theme .efs-search {
+
   background: #333;
+
   border-color: #555;
+
   color: #fff;
+
 }
+
+
 
 .dark-theme .efs-list {
+
   border-color: #444;
+
   background: #333;
+
 }
+
+
 
 .dark-theme .efs-item {
+
   border-bottom-color: #444;
+
   color: #eee;
+
 }
+
+
 
 .dark-theme .sidebar-hint {
+
   color: #aaa;
+
 }
+
+
 
 .dark-theme .leaflet-sidebar-header {
+
     background-color: #2c2c2c;
+
     color: #fff;
+
 }
+
+
 
 .dark-theme .leaflet-sidebar-content {
+
     background-color: #1e1e1e;
+
 }
+
+
 
 .dark-theme .leaflet-sidebar-tabs {
+
     background-color: #2c2c2c;
+
 }
 
+
+
 .dark-theme .leaflet-sidebar-tabs > li > a {
+
+    color: #ccc;
+
+}
+
+
+
+.dark-theme .leaflet-sidebar-tabs > li.active, 
+
+.dark-theme .leaflet-sidebar-tabs > ul > li.active {
+
+    background-color: #1e1e1e;
+
+    color: #fff;
+
+}
+
+
+
+/* Chart Dashboard Frame */
+
+.chart-dashboard-frame {
+
+  border: 1px solid #e3e3e3;
+
+  border-radius: 8px;
+
+  padding: 10px;
+
+  background: #fff;
+
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+  margin-top: 10px;
+
+  resize: vertical;
+
+  overflow: hidden;
+
+  min-height: 200px;
+
+}
+
+
+
+.dark-theme .chart-dashboard-frame {
+
+  background: #2c2c2c;
+
+  border-color: #444;
+
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+
+}
+
+
+
+/* Chart Settings Panel */
+
+.chart-settings-panel {
+
+  background-color: white;
+
+  border: 1px solid #ccc;
+
+  padding: 10px;
+
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+
+  border-radius: 4px;
+
+  color: #333;
+
+}
+
+
+
+.dark-theme .chart-settings-panel {
+
+  background-color: #2c2c2c;
+
+  border-color: #444;
+
+  color: #eee;
+
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+
+}
+
+
+
+.dark-theme .chart-settings-panel select {
+
+    background-color: #333;
+
+    color: #eee;
+
+    border: 1px solid #555;
+
+}
+
+
+
+/* Full View Chart Modal */
+
+.chart-full-view-container {
+
+  background-color: white;
+
+  color: #333;
+
+}
+
+
+
+.dark-theme .chart-full-view-container {
+
+  background-color: #2c2c2c;
+
+  color: #eee;
+
+}
+
+
+
+.chart-close-btn {
+
+  color: #333;
+
+}
+
+
+
+.dark-theme .chart-close-btn {
+
+  color: #eee;
+
+}
+
+
+
+/* Zoom Controls */
+
+.axis-zoom-control {
+
+    background-color: white;
+
+    border: 1px solid #ccc;
+
+}
+
+
+
+.dark-theme .axis-zoom-control {
+
+    background-color: #333 !important;
+
+    border-color: #555 !important;
+
+}
+
+
+
+.zoom-control-btn {
+
+    background-color: white;
+
+    color: #333;
+
+}
+
+
+
+.zoom-control-btn:hover {
+
+    background-color: #f0f0f0 !important;
+
+}
+
+
+
+.dark-theme .zoom-control-btn {
+
+    background-color: #333 !important;
+
+    color: #eee !important;
+
+    border-color: #555 !important;
+
+}
+
+
+
+.dark-theme .zoom-control-btn:hover {
+
+    background-color: #444 !important;
+
+}
+
+
+
+/* Chart Action Buttons (Full View, Settings) */
+
+.chart-action-btn {
+
+    background-color: #f8f9fa;
+
+    border: 1px solid #ccc;
+
+    color: #333;
+
+}
+
+
+
+.dark-theme .chart-action-btn {
+
+    background-color: #333 !important;
+
+    border-color: #555 !important;
+
+    color: #eee !important;
+
+}
+
+
+
+.dark-theme .chart-action-btn:hover {
+
+    background-color: #444 !important;
+
+}
+
+
+
+.chart-placeholder-text {
+
+    color: #888;
+
+    font-size: 16px;
+
+    font-weight: 500;
+
+}
+
+
+
+.dark-theme .chart-placeholder-text {
+
+    color: #aaa;
+
+}
+
+
+
+/* NEW: Invert tile colors for dark mode */
+
+body.dark-theme .field-contours-layer {
+
+    filter: invert(1) hue-rotate(180deg);
+
+}
+
+
+
+/* Chart Series Tags */
+
+.chart-series-tag {
+
+  display: flex;
+
+  align-items: center;
+
+  background-color: #f0f0f0;
+
+  border: 1px solid #ccc;
+
+  border-radius: 3px;
+
+  padding: 1px 4px;
+
+  font-size: 10px;
+
+  color: #333;
+
+  cursor: grab;
+
+}
+
+
+
+.dark-theme .chart-series-tag {
+
+  background-color: #333;
+
+  border-color: #555;
+
+  color: #eee;
+
+}
+
+
+
+/* Chart Controls Theme Support */
+
+.axis-drawer-toggle, .axis-drawer-toggle-right {
+
+    background-color: #eee !important;
+
+    border: 1px solid #ccc !important;
+
+    color: #666 !important;
+
+    transition: all 0.2s ease;
+
+}
+
+
+
+.dark-theme .axis-drawer-toggle, .dark-theme .axis-drawer-toggle-right {
+
+    background-color: #333 !important;
+
+    border-color: #555 !important;
+
+    color: #ccc !important;
+
+}
+
+
+
+.chart-header-btn {
+
+    background-color: rgba(0,0,0,0.05) !important;
+
+    border: 1px solid #ddd !important;
+
+    color: #666 !important;
+
+    transition: all 0.2s ease;
+
+}
+
+
+
+.dark-theme .chart-header-btn {
+
+    background-color: rgba(255,255,255,0.05) !important;
+
+    border-color: #555 !important;
+
+    color: #ccc !important;
+
+}
+
+
+
+.chart-header-btn:hover {
+
+    background-color: rgba(0,0,0,0.1) !important;
+
+}
+
+
+
+.dark-theme .chart-header-btn:hover {
+
+    background-color: rgba(255,255,255,0.1) !important;
+
+}
+
+
+
+.chart-header-btn.active {
+
+    background-color: rgba(46, 204, 113, 0.1) !important;
+
+    border-color: #2ecc71 !important;
+
+}
+
+
+
+.dark-theme .chart-header-btn.active {
+
+    background-color: rgba(46, 204, 113, 0.2) !important;
+
+    border-color: #2ecc71 !important;
+
+}
+
+
+
+.chart-toolbar-btn {
+
+    color: #666 !important;
+
+    transition: color 0.2s ease;
+
+}
+
+
+
+.dark-theme .chart-toolbar-btn {
+
+    color: #ccc !important;
+
+}
+
+
+
+.chart-drag-handle {
+
+    color: #666 !important;
+
+}
+
+
+
+.dark-theme .chart-drag-handle {
+
+    color: #ccc !important;
+
+}
+
+
+
+/* Dashboard Table Styles */
+
+.dashboard-table-selected {
+
+    background-color: rgba(0, 120, 215, 0.2) !important;
+
+    outline: 1px solid rgba(0, 120, 215, 0.5);
+
+}
+
+
+
+.dashboard-table-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    width: 100%;
+
+}
+
+
+
+.dashboard-table-title {
+
+    flex-grow: 1;
+
+    outline: none;
+
+}
+
+
+
+.dashboard-table-controls {
+
+    display: flex;
+
+    gap: 2px;
+
+    margin-left: 5px;
+
+    opacity: 0; /* Show on hover */
+
+    transition: opacity 0.2s;
+
+}
+
+
+
+th:hover .dashboard-table-controls {
+
+    opacity: 1;
+
+}
+
+
+
+.dashboard-table-btn {
+
+    cursor: pointer;
+
+    padding: 2px;
+
+    border-radius: 3px;
+
+    font-size: 10px;
+
+    color: #666;
+
+}
+
+
+
+.dashboard-table-btn:hover {
+
+    background-color: rgba(0,0,0,0.1);
+
+    color: #000;
+
+}
+
+
+
+.dark-theme .dashboard-table-btn {
+
+    color: #aaa;
+
+}
+
+
+
+.dark-theme .dashboard-table-btn:hover {
+
+    background-color: rgba(255,255,255,0.1);
+
+    color: #fff;
+
+}
+
+
+
+.dashboard-filter-menu {
+
+    position: fixed;
+
+    background: white;
+
+    border: 1px solid #ccc;
+
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+
+    padding: 10px;
+
+    z-index: 100005;
+
+    border-radius: 4px;
+
+    min-width: 150px;
+
+    font-family: Arial, sans-serif;
+
+    font-size: 12px;
+
+}
+
+
+
+.dark-theme .dashboard-filter-menu {
+
+    background: #333;
+
+    border-color: #555;
+
+    color: #eee;
+
+}
+
+
+
+.dashboard-filter-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    margin-bottom: 5px;
+
+    cursor: pointer;
+
+}
+
+
+
+.dashboard-filter-actions {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    margin-top: 10px;
+
+    border-top: 1px solid #eee;
+
+    padding-top: 5px;
+
+}
+
+
+
+.dark-theme .dashboard-filter-actions {
+
+    border-top-color: #555;
+
+}
+
+
+
+/* Dark Mode for Leaflet Measure Control */
+
+body.dark-theme .leaflet-control-measure {
+
+    background: #333;
+
+    border: 1px solid #444;
+
+    color: #eee;
+
+}
+
+
+
+body.dark-theme .leaflet-control-measure .leaflet-control-measure-toggle,
+
+body.dark-theme .leaflet-control-measure .leaflet-control-measure-interaction {
+
+    background-color: #333;
+
+    color: #eee;
+
+}
+
+
+
+body.dark-theme .leaflet-control-measure a.leaflet-control-measure-toggle:hover {
+
+    background-color: #444;
+
+}
+
+
+
+/* Ensure Time Slider text is visible in Dark Mode */
+
+body.dark-theme .time-slider-title,
+
+body.dark-theme .time-slider-container .time-slider-label {
+
+    color: #eee !important;
+
+}
+
+
+
+body.dark-theme .time-slider-track {
+
+    background: #555 !important;
+
+}
+
+
+
+/* Box Selection Control Styles */
+
+.leaflet-control-box-select {
+
+    background-color: white;
+
+    color: #333;
+
+    border-radius: 4px;
+
+    box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+
+    transition: background-color 0.2s, color 0.2s;
+
+    text-decoration: none !important;
+
+}
+
+
+
+.leaflet-control-box-select:hover {
+
+    background-color: #f4f4f4;
+
+    color: #000;
+
+}
+
+
+
+.leaflet-control-box-select.active {
+
+    background-color: #ccc;
+
+    color: #000;
+
+}
+
+
+
+/* Dark Mode for Box Selection Control */
+
+body.dark-theme .leaflet-control-box-select {
+
+    background-color: #333;
+
+    color: #eee;
+
+    border: 1px solid #444;
+
+}
+
+
+
+body.dark-theme .leaflet-control-box-select:hover {
+
+    background-color: #444;
+
+    color: #fff;
+
+}
+
+
+
+body.dark-theme .leaflet-control-box-select.active {
+
+    background-color: #555;
+
+    color: #fff;
+
+    border-color: #666;
+
+}
+
+
+
+/* Custom Tab Styling */
+
+.nav-tabs {
+
+    border-bottom: 1px solid #e0e0e0;
+
+    background-color: #ffffff !important; /* Override inline style */
+
+    padding: 0 10px;
+
+    gap: 5px;
+
+}
+
+
+
+.nav-tabs .nav-item {
+
+    margin-bottom: -1px;
+
+}
+
+
+
+.nav-tabs .nav-link {
+
+    border: none;
+
+    border-bottom: 3px solid transparent;
+
+    border-radius: 0;
+
+    color: #6c757d;
+
+    font-weight: 500;
+
+    padding: 10px 15px;
+
+    transition: all 0.2s ease;
+
+    background: transparent;
+
+}
+
+
+
+.nav-tabs .nav-link:hover {
+
+    border-color: transparent;
+
+    color: #0d6efd;
+
+    background-color: rgba(13, 110, 253, 0.05);
+
+}
+
+
+
+.nav-tabs .nav-link.active {
+
+    color: #0d6efd;
+
+    background-color: transparent;
+
+    border-bottom: 3px solid #0d6efd;
+
+    font-weight: 600;
+
+}
+
+
+
+/* Add Tab Button Styling */
+
+#add-global-tab {
+
+    color: #6c757d;
+
+    font-size: 18px;
+
+    padding: 5px 12px;
+
+    margin-top: 2px;
+
+    border-radius: 4px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    height: 35px;
+
+    width: 35px;
+
+    border: none; /* Ensure no border from nav-link */
+
+    background: transparent;
+
+}
+
+
+
+#add-global-tab:hover {
+
+    background-color: #e9ecef;
+
+    color: #0d6efd;
+
+}
+
+
+
+/* Close Button in Tabs */
+
+.nav-link .close-tab-btn {
+
+    margin-left: 8px;
+
+    font-size: 18px;
+
+    line-height: 1;
+
+    color: #adb5bd;
+
+    border-radius: 50%;
+
+    padding: 0 4px;
+
+    transition: all 0.2s;
+
+    cursor: pointer;
+
+}
+
+
+
+.nav-link .close-tab-btn:hover {
+
+    color: #dc3545;
+
+    background-color: rgba(220, 53, 69, 0.1);
+
+}
+
+
+
+/* Enhanced Sidebar Styling */
+
+.dashboard-sidebar {
+
+    background: #ffffff;
+
+    border-right: 1px solid #e0e0e0;
+
+    box-shadow: 2px 0 5px rgba(0,0,0,0.03);
+
+    display: flex;
+
+    flex-direction: column;
+
+    position: relative;
+
+    z-index: 100;
+
+}
+
+
+
+.sidebar-header {
+
+    height: 50px;
+
+    min-height: 50px;
+
+    padding: 0 16px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    border-bottom: 1px solid #f0f0f0;
+
+    background: #fafafa;
+
+}
+
+
+
+.sidebar-header span {
+
+    font-weight: 600;
+
+    font-size: 14px;
+
+    color: #333;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    opacity: 1;
+
+    transition: opacity 0.2s;
+
+}
+
+
+
+.sidebar-toggle-btn {
+
+    width: 28px;
+
+    height: 28px;
+
+    border-radius: 4px;
+
+    border: 1px solid transparent;
+
+    background: transparent;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    cursor: pointer;
+
+    color: #666;
+
+    transition: all 0.2s;
+
+    padding: 0;
+
+}
+
+
+
+.sidebar-toggle-btn:hover {
+
+    background: #e0e0e0;
+
+    color: #333;
+
+}
+
+
+
+.sidebar-toggle-btn i {
+
+    font-size: 20px;
+
+}
+
+
+
+/* Widget List */
+
+.widget-list {
+
+    padding: 12px 8px;
+
+    overflow-y: auto;
+
+    flex: 1;
+
+}
+
+
+
+.widget-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 10px 12px;
+
+    margin-bottom: 4px;
+
+    border-radius: 6px;
+
+    cursor: grab;
+
+    transition: all 0.2s;
+
+    border: 1px solid transparent;
+
+    color: #444;
+
+}
+
+
+
+.widget-item:hover {
+
+    background: #f5f9ff;
+
+    border-color: #d0e1fd;
+
+    color: #1a73e8;
+
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+
+}
+
+
+
+.widget-item:active {
+
+    cursor: grabbing;
+
+}
+
+
+
+.widget-item i {
+
+    font-size: 20px;
+
+    color: #5f6368;
+
+    min-width: 24px; /* Ensure icon doesn't shift */
+
+    text-align: center;
+
+}
+
+
+
+.widget-item:hover i {
+
+    color: #1a73e8;
+
+}
+
+
+
+.widget-item span {
+
+    font-size: 13px;
+
+    font-weight: 500;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    opacity: 1;
+
+    transition: opacity 0.2s;
+
+}
+
+
+
+/* Collapsed State */
+
+.dashboard-sidebar.collapsed {
+
+    width: 60px !important;
+
+}
+
+
+
+.dashboard-sidebar.collapsed .sidebar-header {
+
+    padding: 0;
+
+    justify-content: center;
+
+}
+
+
+
+.dashboard-sidebar.collapsed .sidebar-header span {
+
+    display: none;
+
+    opacity: 0;
+
+}
+
+
+
+.dashboard-sidebar.collapsed .widget-item {
+
+    padding: 10px 0;
+
+    justify-content: center;
+
+}
+
+
+
+.dashboard-sidebar.collapsed .widget-item span {
+
+    display: none;
+
+    opacity: 0;
+
+}
+
+
+
+.dashboard-sidebar.collapsed .widget-item i {
+
+    margin: 0;
+
+}
+
+
+
+/* Resizer Handle */
+
+.sidebar-resizer {
+
+    width: 8px; /* Wider hit area */
+
+    margin-left: -4px; /* Center over border */
+
+    background: transparent;
+
+    z-index: 101;
+
+    cursor: col-resize;
+
+    position: relative;
+
+    transition: background 0.2s;
+
+}
+
+
+
+.sidebar-resizer::after {
+
+    content: '';
+
+    position: absolute;
+
+    top: 0;
+
+    bottom: 0;
+
+    left: 3px;
+
+    width: 1px;
+
+    background: #e0e0e0; /* Visible line */
+
+    transition: background 0.2s;
+
+}
+
+
+
+.sidebar-resizer:hover::after,
+
+.sidebar-resizer.resizing::after {
+
+    background: #1a73e8;
+
+    width: 2px;
+
+}
+
+
+
+/* Dark Mode Overrides */
+
+body.dark-theme .dashboard-sidebar {
+
+    background: #1e1e1e;
+
+    border-right-color: #333;
+
+}
+
+
+
+body.dark-theme .sidebar-header {
+
+    background: #252526;
+
+    border-bottom-color: #333;
+
+}
+
+
+
+body.dark-theme .sidebar-header span {
+
+    color: #eee;
+
+}
+
+
+
+body.dark-theme .sidebar-toggle-btn {
+
+    color: #aaa;
+
+}
+
+
+
+body.dark-theme .sidebar-toggle-btn:hover {
+
+    background: #333;
+
+    color: #fff;
+
+}
+
+
+
+body.dark-theme .widget-item {
+
+    color: #ccc;
+
+}
+
+
+
+body.dark-theme .widget-item:hover {
+
+    background: #2d2d2d;
+
+    border-color: #444;
+
+    color: #64b5f6;
+
+}
+
+
+
+body.dark-theme .widget-item i {
+
+    color: #aaa;
+
+}
+
+
+
+body.dark-theme .widget-item:hover i {
+
+    color: #64b5f6;
+
+}
+
+
+
+body.dark-theme .sidebar-resizer::after {
+
+    background: #333;
+
+}
+
+
+
+body.dark-theme .sidebar-resizer:hover::after,
+
+body.dark-theme .sidebar-resizer.resizing::after {
+
+    background: #64b5f6;
+
+}
+
+
+
+/* Enhanced Canvas Placeholder */
+
+.canvas-placeholder {
+
+    border: 2px dashed #ccc;
+
+    border-radius: 8px;
+
+    padding: 40px;
+
+    background: rgba(0,0,0,0.02);
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 10px;
+
+    color: #888;
+
+}
+
+
+
+.canvas-placeholder::before {
+
+    content: 'dashboard'; /* Material Icon name */
+
+    font-family: 'Material Icons';
+
+    font-size: 48px;
+
+    color: #ccc;
+
+}
+
+
+
+body.dark-theme .canvas-placeholder {
+
+    border-color: #444;
+
+    background: rgba(255,255,255,0.02);
+
+    color: #aaa;
+
+}
+
+
+
+body.dark-theme .canvas-placeholder::before {
+
+    color: #555;
+
+}
+
+
+
+/* --- RECOVERED STYLES --- */
+
+/* Dashboard Tabs Styling */
+.dashboard-tab {
+    padding: 5px 10px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    border-radius: 4px 4px 0 0;
+    background: #f0f0f0;
+    font-size: 12px;
+    margin-right: 2px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #333;
+    user-select: none;
+}
+
+.dashboard-tab.active {
+    background: #fff;
+    border-bottom: none;
+    font-weight: bold;
+    position: relative;
+    top: 1px; /* Cover the border below */
+    z-index: 2;
+}
+
+#add-dashboard-tab-btn {
+    padding: 5px 10px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#add-dashboard-tab-btn:hover {
+    background-color: rgba(0,0,0,0.05);
+    border-radius: 4px;
+}
+
+/* Dark Mode for Dashboard Tabs */
+body.dark-theme .dashboard-tab {
+    background: #2d2d2d;
+    border-color: #444;
     color: #ccc;
 }
 
-.dark-theme .leaflet-sidebar-tabs > li.active, 
-.dark-theme .leaflet-sidebar-tabs > ul > li.active {
-    background-color: #1e1e1e;
+body.dark-theme .dashboard-tab.active {
+    background: #1e1e1e; /* Match sidebar background */
+    border-bottom: none; /* Or match background color */
     color: #fff;
+    border-color: #444;
 }
 
-/* Chart Dashboard Frame */
-.chart-dashboard-frame {
-  border: 1px solid #e3e3e3;
-  border-radius: 8px;
-  padding: 10px;
-  background: #fff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  margin-top: 10px;
-  resize: vertical;
-  overflow: hidden;
-  min-height: 200px;
-}
-
-.dark-theme .chart-dashboard-frame {
-  background: #2c2c2c;
-  border-color: #444;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-/* Chart Settings Panel */
-.chart-settings-panel {
-  background-color: white;
-  border: 1px solid #ccc;
-  padding: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  border-radius: 4px;
-  color: #333;
-}
-
-.dark-theme .chart-settings-panel {
-  background-color: #2c2c2c;
-  border-color: #444;
-  color: #eee;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-}
-
-.dark-theme .chart-settings-panel select {
-    background-color: #333;
-    color: #eee;
-    border: 1px solid #555;
-}
-
-/* Full View Chart Modal */
-.chart-full-view-container {
-  background-color: white;
-  color: #333;
-}
-
-.dark-theme .chart-full-view-container {
-  background-color: #2c2c2c;
-  color: #eee;
-}
-
-.chart-close-btn {
-  color: #333;
-}
-
-.dark-theme .chart-close-btn {
-  color: #eee;
-}
-
-/* Zoom Controls */
-.axis-zoom-control {
-    background-color: white;
-    border: 1px solid #ccc;
-}
-
-.dark-theme .axis-zoom-control {
-    background-color: #333 !important;
-    border-color: #555 !important;
-}
-
-.zoom-control-btn {
-    background-color: white;
-    color: #333;
-}
-
-.zoom-control-btn:hover {
-    background-color: #f0f0f0 !important;
-}
-
-.dark-theme .zoom-control-btn {
-    background-color: #333 !important;
-    color: #eee !important;
-    border-color: #555 !important;
-}
-
-.dark-theme .zoom-control-btn:hover {
-    background-color: #444 !important;
-}
-
-/* Chart Action Buttons (Full View, Settings) */
-.chart-action-btn {
-    background-color: #f8f9fa;
-    border: 1px solid #ccc;
-    color: #333;
-}
-
-.dark-theme .chart-action-btn {
-    background-color: #333 !important;
-    border-color: #555 !important;
-    color: #eee !important;
-}
-
-.dark-theme .chart-action-btn:hover {
-    background-color: #444 !important;
-}
-
-.chart-placeholder-text {
-    color: #888;
-    font-size: 16px;
-    font-weight: 500;
-}
-
-.dark-theme .chart-placeholder-text {
+body.dark-theme #add-dashboard-tab-btn {
     color: #aaa;
 }
 
-/* NEW: Invert tile colors for dark mode */
-body.dark-theme .field-contours-layer {
-    filter: invert(1) hue-rotate(180deg);
+body.dark-theme #add-dashboard-tab-btn:hover {
+    background-color: rgba(255,255,255,0.1);
 }
 
-/* Chart Series Tags */
-.chart-series-tag {
-  display: flex;
-  align-items: center;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  padding: 1px 4px;
-  font-size: 10px;
-  color: #333;
-  cursor: grab;
-}
-
-.dark-theme .chart-series-tag {
-  background-color: #333;
-  border-color: #555;
-  color: #eee;
-}
-
-/* Chart Controls Theme Support */
-.axis-drawer-toggle, .axis-drawer-toggle-right {
-    background-color: #eee !important;
-    border: 1px solid #ccc !important;
-    color: #666 !important;
-    transition: all 0.2s ease;
-}
-
-.dark-theme .axis-drawer-toggle, .dark-theme .axis-drawer-toggle-right {
-    background-color: #333 !important;
-    border-color: #555 !important;
-    color: #ccc !important;
-}
-
-.chart-header-btn {
-    background-color: rgba(0,0,0,0.05) !important;
-    border: 1px solid #ddd !important;
-    color: #666 !important;
-    transition: all 0.2s ease;
-}
-
-.dark-theme .chart-header-btn {
-    background-color: rgba(255,255,255,0.05) !important;
-    border-color: #555 !important;
-    color: #ccc !important;
-}
-
-.chart-header-btn:hover {
-    background-color: rgba(0,0,0,0.1) !important;
-}
-
-.dark-theme .chart-header-btn:hover {
-    background-color: rgba(255,255,255,0.1) !important;
-}
-
-.chart-header-btn.active {
-    background-color: rgba(46, 204, 113, 0.1) !important;
-    border-color: #2ecc71 !important;
-}
-
-.dark-theme .chart-header-btn.active {
-    background-color: rgba(46, 204, 113, 0.2) !important;
-    border-color: #2ecc71 !important;
-}
-
-.chart-toolbar-btn {
-    color: #666 !important;
-    transition: color 0.2s ease;
-}
-
-.dark-theme .chart-toolbar-btn {
-    color: #ccc !important;
-}
-
-.chart-drag-handle {
-    color: #666 !important;
-}
-
-.dark-theme .chart-drag-handle {
-    color: #ccc !important;
-}
-
-/* Dashboard Table Styles */
-.dashboard-table-selected {
-    background-color: rgba(0, 120, 215, 0.2) !important;
-    outline: 1px solid rgba(0, 120, 215, 0.5);
-}
-
-.dashboard-table-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-
-.dashboard-table-title {
-    flex-grow: 1;
-    outline: none;
-}
-
-.dashboard-table-controls {
+/* Details Dashboard Tabs Container */
+.details-dashboard-tabs-container {
     display: flex;
     gap: 2px;
-    margin-left: 5px;
-    opacity: 0; /* Show on hover */
-    transition: opacity 0.2s;
-}
-
-th:hover .dashboard-table-controls {
-    opacity: 1;
-}
-
-.dashboard-table-btn {
-    cursor: pointer;
-    padding: 2px;
-    border-radius: 3px;
-    font-size: 10px;
-    color: #666;
-}
-
-.dashboard-table-btn:hover {
-    background-color: rgba(0,0,0,0.1);
-    color: #000;
-}
-
-.dark-theme .dashboard-table-btn {
-    color: #aaa;
-}
-
-.dark-theme .dashboard-table-btn:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: #fff;
-}
-
-.dashboard-filter-menu {
-    position: fixed;
-    background: white;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    padding: 10px;
-    z-index: 100005;
-    border-radius: 4px;
-    min-width: 150px;
-    font-family: Arial, sans-serif;
-    font-size: 12px;
-}
-
-.dark-theme .dashboard-filter-menu {
-    background: #333;
-    border-color: #555;
-    color: #eee;
-}
-
-.dashboard-filter-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-bottom: 5px;
-    cursor: pointer;
-}
-
-.dashboard-filter-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 10px;
-    border-top: 1px solid #eee;
-    padding-top: 5px;
-}
-
-.dark-theme .dashboard-filter-actions {
-    border-top-color: #555;
-}
-
-/* Dark Mode for Leaflet Measure Control */
-body.dark-theme .leaflet-control-measure {
-    background: #333;
-    border: 1px solid #444;
-    color: #eee;
-}
-
-body.dark-theme .leaflet-control-measure .leaflet-control-measure-toggle,
-body.dark-theme .leaflet-control-measure .leaflet-control-measure-interaction {
-    background-color: #333;
-    color: #eee;
-}
-
-body.dark-theme .leaflet-control-measure a.leaflet-control-measure-toggle:hover {
-    background-color: #444;
-}
-
-/* Ensure Time Slider text is visible in Dark Mode */
-body.dark-theme .time-slider-title,
-body.dark-theme .time-slider-container .time-slider-label {
-    color: #eee !important;
-}
-
-body.dark-theme .time-slider-track {
-    background: #555 !important;
-}
-
-/* Box Selection Control Styles */
-.leaflet-control-box-select {
-    background-color: white;
-    color: #333;
-    border-radius: 4px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.65);
-    transition: background-color 0.2s, color 0.2s;
-    text-decoration: none !important;
-}
-
-.leaflet-control-box-select:hover {
-    background-color: #f4f4f4;
-    color: #000;
-}
-
-.leaflet-control-box-select.active {
-    background-color: #ccc;
-    color: #000;
-}
-
-/* Dark Mode for Box Selection Control */
-body.dark-theme .leaflet-control-box-select {
-    background-color: #333;
-    color: #eee;
-    border: 1px solid #444;
-}
-
-body.dark-theme .leaflet-control-box-select:hover {
-    background-color: #444;
-    color: #fff;
-}
-
-body.dark-theme .leaflet-control-box-select.active {
-    background-color: #555;
-    color: #fff;
-    border-color: #666;
-}
-
-/* Custom Tab Styling */
-.nav-tabs {
-    border-bottom: 1px solid #e0e0e0;
-    background-color: #ffffff !important; /* Override inline style */
-    padding: 0 10px;
-    gap: 5px;
-}
-
-.nav-tabs .nav-item {
-    margin-bottom: -1px;
-}
-
-.nav-tabs .nav-link {
-    border: none;
-    border-bottom: 3px solid transparent;
-    border-radius: 0;
-    color: #6c757d;
-    font-weight: 500;
-    padding: 10px 15px;
-    transition: all 0.2s ease;
-    background: transparent;
-}
-
-.nav-tabs .nav-link:hover {
-    border-color: transparent;
-    color: #0d6efd;
-    background-color: rgba(13, 110, 253, 0.05);
-}
-
-.nav-tabs .nav-link.active {
-    color: #0d6efd;
-    background-color: transparent;
-    border-bottom: 3px solid #0d6efd;
-    font-weight: 600;
-}
-
-/* Add Tab Button Styling */
-#add-global-tab {
-    color: #6c757d;
-    font-size: 18px;
-    padding: 5px 12px;
-    margin-top: 2px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 35px;
-    width: 35px;
-    border: none; /* Ensure no border from nav-link */
-    background: transparent;
-}
-
-#add-global-tab:hover {
-    background-color: #e9ecef;
-    color: #0d6efd;
-}
-
-/* Close Button in Tabs */
-.nav-link .close-tab-btn {
-    margin-left: 8px;
-    font-size: 18px;
-    line-height: 1;
-    color: #adb5bd;
-    border-radius: 50%;
-    padding: 0 4px;
-    transition: all 0.2s;
-    cursor: pointer;
-}
-
-.nav-link .close-tab-btn:hover {
-    color: #dc3545;
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-/* Selected Well Labels */
-.selected-well-label-content {
-    background: rgba(255, 255, 255, 0.9);
-    padding: 2px 6px;
-    border: 1px solid #999;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #333;
-    white-space: nowrap;
-    transform: translate(-50%, -25px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    pointer-events: none;
-}
-
-body.dark-theme .selected-well-label-content {
-    background: rgba(50, 50, 50, 0.9);
-    border-color: #666;
-    color: #eee;
-}
-
-/* Add Plot Button */
-.add-plot-btn {
-    border: 3px dashed #e0e0e0;
-    border-radius: 4px;
-    height: 100px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #999;
-    font-size: 14px;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
     flex-shrink: 0;
-    background: #fafafa;
-    transition: all 0.2s;
-    margin-bottom: 20px;
 }
 
+body.dark-theme .details-dashboard-tabs-container {
+    border-bottom-color: #444;
+}
+
+/* Ensure Add Plot Button is visible in Dark Mode */
 body.dark-theme .add-plot-btn {
-    border-color: #444;
-    background: #2b2b2b;
-    color: #aaa;
-}
-
-.add-plot-btn:hover {
-    background: #f0f0f0;
-    border-color: #ccc;
+    background: #2b2b2b !important;
+    border-color: #444 !important;
+    color: #aaa !important;
 }
 
 body.dark-theme .add-plot-btn:hover {
-    background: #333;
-    border-color: #555;
+    background: #333 !important;
+    border-color: #666 !important;
 }
 
-/* Chart Settings Panel */
-.chart-settings-panel {
-    background-color: white;
+/* Dark Mode for Sidebar Container */
+body.dark-theme .leaflet-sidebar {
+    background: rgba(30, 30, 30, 0.95);
+    border-right-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Fusion Sheet Toolbar Styling */
+.jexcel_toolbar {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e0e0e0 !important;
+    padding: 8px 12px !important;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.jexcel_toolbar_item {
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+    cursor: pointer;
+    padding: 6px !important;
+    transition: all 0.2s ease;
+    color: #444746 !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+.jexcel_toolbar_item:hover {
+    background-color: #f0f4f8 !important;
+    color: #1a73e8 !important;
+}
+
+.jexcel_toolbar_item i.material-icons {
+    font-size: 20px !important;
+}
+
+/* Separator */
+.jexcel_toolbar_item.jexcel_toolbar_divisor {
+    width: 1px !important;
+    height: 20px !important;
+    background-color: #e0e0e0 !important;
+    margin: 0 8px !important;
+    padding: 0 !important;
+    min-width: 1px !important;
+}
+
+/* Dark Mode Support for Toolbar */
+body.dark-theme .jexcel_toolbar {
+    background-color: #2d2d2d !important;
+    border-bottom: 1px solid #404040 !important;
+}
+
+body.dark-theme .jexcel_toolbar_item {
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .jexcel_toolbar_item:hover {
+    background-color: #404040 !important;
+    color: #64b5f6 !important;
+}
+
+body.dark-theme .jexcel_toolbar_item.jexcel_toolbar_divisor {
+    background-color: #505050 !important;
+}
+
+
+/* --- SELECTION WIDGET & HIGHLIGHT STYLES --- */
+
+/* Selection UI Widget */
+.selection-ui-container {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff; /* Light mode default */
+    color: #333;
+    padding: 8px 15px;
+    border-radius: 5px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    font-size: 13px;
+    border: 1px solid #ccc;
+}
+
+.selection-ui-btn {
+    background: #f0f0f0;
     border: 1px solid #ccc;
     color: #333;
-    padding: 10px;
-    border-radius: 4px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.selection-ui-btn:hover {
+    background: #e0e0e0;
+}
+
+/* Dark Mode for Selection UI */
+body.dark-theme .selection-ui-container {
+    background-color: #333;
+    color: white;
+    border-color: #555;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+body.dark-theme .selection-ui-btn {
+    background: #555;
+    border-color: #666;
+    color: white;
+}
+
+body.dark-theme .selection-ui-btn:hover {
+    background: #666;
+}
+
+/* Selected Well Label */
+.selected-well-label-content {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 5px;
+    border-radius: 3px;
+    border: 1px solid #333;
+    font-size: 12px;
+    font-weight: bold;
+    color: #000;
+    white-space: nowrap;
+}
+
+/* Dark Mode for Labels */
+body.dark-theme .selected-well-label-content {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #fff;
+    color: #fff;
+}
+
+/* Pie Chart Highlight */
+.selected-well-highlight svg circle[stroke] {
+    stroke: #00FF00 !important;
+    stroke-width: 3px !important;
+}
+
+/* Fallback for empty pie charts (divs) */
+.selected-well-highlight .well-pie-chart-empty div {
+    border-color: #00FF00 !important;
+    border-width: 3px !important;
+}
+
+
+/* --- ANALYTICAL DASHBOARD STYLES --- */
+
+.dashboard-sidebar {
+    width: 250px;
+    background: #f8f9fa;
+    border-right: 1px solid #ddd;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-width: 150px;
-    max-height: 60vh;
+    position: relative;
+    flex-shrink: 0;
+    transition: width 0.1s ease-out; /* Smooth resize but fast enough */
+}
+
+.dashboard-sidebar-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+}
+
+.sidebar-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+}
+
+.sidebar-toggle-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #666;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-toggle-btn:hover {
+    background: rgba(0,0,0,0.05);
+    color: #333;
+}
+
+.dashboard-sidebar-content {
+    flex: 1;
     overflow-y: auto;
+    padding: 12px;
 }
 
-body.dark-theme .chart-settings-panel {
-    background-color: #2b2b2b;
-    border-color: #444;
+.dashboard-widget-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    cursor: grab;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    color: #444;
+    font-size: 13px;
+}
+
+.dashboard-widget-item:hover {
+    background-color: #e8eaed;
+    color: #1a73e8;
+}
+
+.dashboard-widget-item .widget-icon {
+    font-size: 18px;
+    margin-right: 12px;
+    color: #5f6368;
+}
+
+.dashboard-widget-item:hover .widget-icon {
+    color: #1a73e8;
+}
+
+.dashboard-resizer {
+    position: absolute;
+    right: -3px; /* Overlap border */
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background 0.2s;
+}
+
+.dashboard-resizer:hover, .dashboard-resizer.resizing {
+    background: rgba(26, 115, 232, 0.5);
+}
+
+.dashboard-sidebar-collapsed {
+    width: 48px;
+    background: #f8f9fa;
+    border-right: 1px solid #ddd;
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    align-items: center;
+    padding-top: 12px;
+    flex-shrink: 0;
+}
+
+.dashboard-main {
+    flex: 1;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* Dark Mode Support */
+body.dark-theme .dashboard-sidebar,
+body.dark-theme .dashboard-sidebar-collapsed {
+    background: #2d2d2d;
+    border-right-color: #444;
+}
+
+body.dark-theme .dashboard-sidebar-header {
+    background: #333;
+    border-bottom-color: #444;
+}
+
+body.dark-theme .sidebar-title {
     color: #eee;
 }
 
-body.dark-theme .chart-settings-panel select {
-    background-color: #1e1e1e;
+body.dark-theme .sidebar-toggle-btn {
+    color: #aaa;
+}
+
+body.dark-theme .sidebar-toggle-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+body.dark-theme .dashboard-widget-item {
+    color: #ccc;
+}
+
+body.dark-theme .dashboard-widget-item:hover {
+    background-color: #444;
+    color: #64b5f6;
+}
+
+body.dark-theme .dashboard-widget-item .widget-icon {
+    color: #aaa;
+}
+
+body.dark-theme .dashboard-widget-item:hover .widget-icon {
+    color: #64b5f6;
+}
+
+body.dark-theme .dashboard-main {
+    background: #1e1e1e;
+}
+
+body.dark-theme .dashboard-empty-state {
+    background-image: radial-gradient(#444 1px, transparent 1px);
+    color: #666;
+}
+
+
+/* --- DASHBOARD SIDEBAR ACTIONS --- */
+
+.sidebar-actions {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    overflow: hidden; /* Prevent overflow if sidebar is too narrow */
+}
+
+.sidebar-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+}
+
+.sidebar-action-btn:hover {
+    background: #f5f5f5;
+    border-color: #bbb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.sidebar-action-btn i {
+    font-size: 16px;
+    color: #5f6368;
+}
+
+.sidebar-action-btn:hover i {
+    color: #333;
+}
+
+/* Dark Mode for Action Buttons */
+body.dark-theme .sidebar-action-btn {
+    background: #333;
+    border-color: #555;
     color: #eee;
-    border: 1px solid #555;
 }
 
-/* Well View Toggle Icon */
-.leaflet-control-well-view svg path {
-    fill: #333;
+body.dark-theme .sidebar-action-btn:hover {
+    background: #444;
+    border-color: #666;
 }
 
-body.dark-theme .leaflet-control-well-view svg path {
-    fill: #ccc;
+body.dark-theme .sidebar-action-btn i {
+    color: #aaa;
 }
 
+body.dark-theme .sidebar-action-btn:hover i {
+    color: #fff;
+}
+
+/* Adjust header to prevent overlap */
+.dashboard-sidebar-header {
+    gap: 8px; /* Space between actions and toggle */
+    flex-wrap: nowrap;
+}
+
+
+/* --- DASHBOARD CONTEXT MENU --- */
+.dashboard-context-menu {
+    position: fixed;
+    background: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    border-radius: 4px;
+    z-index: 10000;
+    min-width: 150px;
+    padding: 4px 0;
+}
+
+.context-menu-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: #333;
+    transition: background 0.1s;
+}
+
+.context-menu-item:hover {
+    background: #f0f0f0;
+}
+
+.context-menu-item i {
+    font-size: 18px;
+    margin-right: 8px;
+    color: #666;
+}
+
+/* Dark Mode for Context Menu */
+body.dark-theme .dashboard-context-menu {
+    background: #333;
+    border-color: #555;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+body.dark-theme .context-menu-item {
+    color: #eee;
+}
+
+body.dark-theme .context-menu-item:hover {
+    background: #444;
+}
+
+body.dark-theme .context-menu-item i {
+    color: #aaa;
+}
+
+
+/* --- DASHBOARD SIDEBAR GROUPS --- */
+.dashboard-widget-group {
+    margin-bottom: 8px;
+}
+
+.dashboard-group-header {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    background: #f1f3f4;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    user-select: none;
+}
+
+.dashboard-group-header:hover {
+    background: #e8eaed;
+}
+
+.dashboard-group-header.expanded {
+    background: #1a73e8;
+    color: white;
+}
+
+.dashboard-group-header .group-icon {
+    font-size: 18px;
+    color: #5f6368;
+}
+
+.dashboard-group-header.expanded .group-icon {
+    color: white;
+}
+
+.dashboard-group-header .expand-icon {
+    font-size: 18px;
+    color: #5f6368;
+}
+
+.dashboard-group-header.expanded .expand-icon {
+    color: white;
+}
+
+.dashboard-group-content {
+    padding-left: 8px;
+}
+
+/* Dark Mode for Groups */
+body.dark-theme .dashboard-group-header {
+    background: #333;
+    color: #eee;
+}
+
+body.dark-theme .dashboard-group-header:hover {
+    background: #444;
+}
+
+body.dark-theme .dashboard-group-header.expanded {
+    background: #1a73e8; /* Keep blue for active state or choose another accent */
+    color: white;
+}
+
+body.dark-theme .dashboard-group-header .group-icon,
+body.dark-theme .dashboard-group-header .expand-icon {
+    color: #aaa;
+}
+
+body.dark-theme .dashboard-group-header.expanded .group-icon,
+body.dark-theme .dashboard-group-header.expanded .expand-icon {
+    color: white;
+}

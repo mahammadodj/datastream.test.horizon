@@ -320,18 +320,8 @@ L.Control.BoxSelect = L.Control.extend({
     },
 
     _selectWellsInBounds: function(bounds) {
-        // Reset previous selection
-        if (window.applyMarkerColorScheme) window.applyMarkerColorScheme();
-
-        // Clear previous labels
-        if (window._selectedWellLabels) {
-            window._selectedWellLabels.forEach(l => map.removeLayer(l));
-        }
-        window._selectedWellLabels = [];
-        
-        // Remove existing selection UI
-        const existingUI = document.getElementById('selection-ui');
-        if (existingUI) existingUI.remove();
+        // Use global clear function
+        if (window.clearWellSelection) window.clearWellSelection();
 
         const selectedWells = [];
         map.eachLayer(layer => {
@@ -342,6 +332,9 @@ L.Control.BoxSelect = L.Control.extend({
                     // Highlight
                     if (layer.setStyle) {
                         layer.setStyle({ color: '#00FF00', fillColor: '#00FF00' });
+                    } else if (layer.getElement()) {
+                        // For Pie Charts (Markers)
+                        L.DomUtil.addClass(layer.getElement(), 'selected-well-highlight');
                     }
 
                     // Add Label
@@ -355,6 +348,8 @@ L.Control.BoxSelect = L.Control.extend({
                         interactive: false,
                         zIndexOffset: 1000
                     }).addTo(map);
+                    
+                    if (!window._selectedWellLabels) window._selectedWellLabels = [];
                     window._selectedWellLabels.push(label);
                 }
             }
@@ -364,12 +359,7 @@ L.Control.BoxSelect = L.Control.extend({
              // Show persistent UI with clear button
              const container = document.createElement('div');
              container.id = 'selection-ui';
-             Object.assign(container.style, {
-                 position: 'fixed', top: '60px', left: '50%', transform: 'translateX(-50%)',
-                 backgroundColor: '#333', color: 'white', padding: '8px 15px', borderRadius: '5px',
-                 zIndex: '10000', display: 'flex', alignItems: 'center', gap: '10px',
-                 boxShadow: '0 2px 10px rgba(0,0,0,0.3)', fontSize: '13px'
-             });
+             container.className = 'selection-ui-container';
              
              const text = document.createElement('span');
              text.textContent = `Selected ${selectedWells.length} wells`;
@@ -377,26 +367,42 @@ L.Control.BoxSelect = L.Control.extend({
 
              const clearBtn = document.createElement('button');
              clearBtn.textContent = 'Remove selection';
-             Object.assign(clearBtn.style, {
-                 background: '#555', border: 'none', color: 'white', padding: '4px 8px',
-                 borderRadius: '3px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold'
-             });
-             clearBtn.onmouseover = () => clearBtn.style.background = '#666';
-             clearBtn.onmouseout = () => clearBtn.style.background = '#555';
+             clearBtn.className = 'selection-ui-btn';
              
              clearBtn.onclick = () => {
-                 if (window.applyMarkerColorScheme) window.applyMarkerColorScheme();
-                 if (window._selectedWellLabels) {
-                    window._selectedWellLabels.forEach(l => map.removeLayer(l));
-                 }
-                 window._selectedWellLabels = [];
-                 container.remove();
+                 if (window.clearWellSelection) window.clearWellSelection();
              };
              
              container.appendChild(clearBtn);
              document.body.appendChild(container);
         }
     }
+});
+
+// Global function to clear selection
+window.clearWellSelection = function() {
+    // Reset colors (CircleMarkers)
+    if (window.applyMarkerColorScheme) window.applyMarkerColorScheme();
+    
+    // Remove Pie Chart Highlights
+    document.querySelectorAll('.selected-well-highlight').forEach(el => {
+        el.classList.remove('selected-well-highlight');
+    });
+
+    // Clear labels
+    if (window._selectedWellLabels) {
+        window._selectedWellLabels.forEach(l => map.removeLayer(l));
+    }
+    window._selectedWellLabels = [];
+    
+    // Remove UI
+    const existingUI = document.getElementById('selection-ui');
+    if (existingUI) existingUI.remove();
+};
+
+// Clear selection when switching tabs (Bootstrap tabs)
+document.addEventListener('shown.bs.tab', function (event) {
+  if (window.clearWellSelection) window.clearWellSelection();
 });
 
 map.addControl(new L.Control.BoxSelect());
@@ -411,9 +417,8 @@ L.Control.WellViewToggle = L.Control.extend({
         const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
         const button = L.DomUtil.create('a', 'leaflet-control-well-view', container);
         // Use SVG for Pie Chart Icon
-        const pieIconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3V12H21Z"/>
-<path d="M21.0001 10C20.9463 5.63823 17.8183 2.00488 13.6667 1.12604V10H21.0001Z"/>
+        const pieIconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+<path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>
 </svg>`;
         
         button.innerHTML = pieIconSvg; 
@@ -437,9 +442,8 @@ L.Control.WellViewToggle = L.Control.extend({
 
     _toggleView: function(button) {
         // Use SVG for Pie Chart Icon
-        const pieIconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3V12H21Z"/>
-<path d="M21.0001 10C20.9463 5.63823 17.8183 2.00488 13.6667 1.12604V10H21.0001Z"/>
+        const pieIconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+<path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>
 </svg>`;
 
         if (window._efsWellViewMode === 'pie') {
@@ -679,9 +683,9 @@ detailsContainer.innerHTML = `
         <h2 id="details-well-name" style="margin-top: 2px;">Well Details</h2>
         
         <!-- Tab Navigation -->
-        <div id="details-dashboard-tabs" style="display: flex; gap: 2px; border-bottom: 1px solid #ccc; margin-bottom: 10px; flex-shrink: 0;">
-            <div class="dashboard-tab active" data-tab="main" onclick="switchDashboardTab('main')" style="padding: 5px 10px; cursor: pointer; border: 1px solid #ccc; border-bottom: none; border-radius: 4px 4px 0 0; background: #fff; font-size: 12px; font-weight: bold;">Main</div>
-            <div id="add-dashboard-tab-btn" onclick="addDashboardTab()" style="padding: 5px 10px; cursor: pointer; font-weight: bold; font-size: 14px; color: #666;">+</div>
+        <div id="details-dashboard-tabs" class="details-dashboard-tabs-container">
+            <div class="dashboard-tab active" data-tab="main" onclick="switchDashboardTab('main')">Main</div>
+            <div id="add-dashboard-tab-btn" onclick="addDashboardTab()">+</div>
         </div>
 
         <!-- Tab Content Container -->
@@ -723,12 +727,9 @@ window.switchDashboardTab = function(tabId) {
     // Update Tab UI
     document.querySelectorAll('.dashboard-tab').forEach(el => {
         el.classList.remove('active');
-        el.style.background = '#f0f0f0';
-        el.style.borderBottom = '1px solid #ccc';
+        // Removed inline styles to allow CSS classes to work
         if (el.dataset.tab === tabId) {
             el.classList.add('active');
-            el.style.background = '#fff';
-            el.style.borderBottom = 'none';
         }
     });
 
@@ -761,8 +762,11 @@ window.addDashboardTab = function(id, name, color) {
     tab.draggable = true;
 
     // Style
+    // Use CSS classes for styling. Only apply custom background if provided.
     const bgColor = color || '#f0f0f0';
-    tab.style.cssText = `padding: 5px 10px; cursor: pointer; border: 1px solid #ccc; border-bottom: 1px solid #ccc; border-radius: 4px 4px 0 0; background: ${bgColor}; font-size: 12px; margin-right: 2px; display: flex; align-items: center; gap: 5px;`;
+    if (color && color !== '#f0f0f0') {
+        tab.style.backgroundColor = color;
+    }
     
     // Drag & Drop
     tab.addEventListener('dragstart', (e) => {

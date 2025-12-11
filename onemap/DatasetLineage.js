@@ -340,6 +340,11 @@ const DatasetLineage = {
             return newTable;
         };
 
+        // Expose addTable globally
+        window.addTableToLineage = (name, columns, data) => {
+            addTable(name, columns, data);
+        };
+
         // Preview Modal Logic
         const previewModal = reactive({
             visible: false,
