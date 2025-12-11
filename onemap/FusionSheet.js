@@ -232,6 +232,117 @@ class FusionSheet {
                 return items;
             }
         });
+
+        // Create filter bar (hidden by default) and attach toolbar buttons
+        try {
+            this.createFilterBar(container);
+            // Add toolbar buttons into the existing toolbar area (if present)
+            const toolbarEl = container.querySelector('.jexcel_toolbar');
+            if (toolbarEl) {
+                // Toggle Filters button
+                const btnFilter = document.createElement('div');
+                btnFilter.className = 'jexcel_toolbar_item';
+                btnFilter.title = 'Toggle Filters';
+                btnFilter.innerHTML = '<i class="material-icons">filter_list</i>';
+                btnFilter.onclick = () => this.toggleFilterBar();
+                toolbarEl.appendChild(btnFilter);
+
+                // Clear Filters button
+                const btnClear = document.createElement('div');
+                btnClear.className = 'jexcel_toolbar_item';
+                btnClear.title = 'Clear Filters';
+                btnClear.innerHTML = '<i class="material-icons">filter_alt_off</i>';
+                btnClear.onclick = () => this.clearFilters();
+                toolbarEl.appendChild(btnClear);
+            }
+        } catch (err) {
+            console.warn('Filter bar init failed', err);
+        }
+    }
+
+    // Create a simple filter bar above the spreadsheet table
+    createFilterBar(container) {
+        if (!container) return;
+        const columns = (this.spreadsheet && this.spreadsheet.options && this.spreadsheet.options.columns)
+                        ? this.spreadsheet.options.columns.length
+                        : (this.spreadsheet.getNumberColumns ? this.spreadsheet.getNumberColumns() : 10);
+
+        const filterBar = document.createElement('div');
+        filterBar.className = 'fusion-filter-bar';
+        filterBar.style.display = 'none';
+        filterBar.style.padding = '6px 8px';
+        filterBar.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
+        filterBar.style.background = 'transparent';
+        filterBar.style.overflowX = 'auto';
+
+        for (let i = 0; i < columns; i++) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.dataset.col = i;
+            input.placeholder = this.spreadsheet && this.spreadsheet.getHeaders ? (this.spreadsheet.getHeaders()[i] || `Col ${i+1}`) : `Col ${i+1}`;
+            input.className = 'fusion-filter-input';
+            input.style.marginRight = '6px';
+            input.style.padding = '6px 8px';
+            input.style.minWidth = '100px';
+            input.style.border = '1px solid #ddd';
+            input.style.borderRadius = '4px';
+
+            input.addEventListener('input', () => this.applyFilters());
+            filterBar.appendChild(input);
+        }
+
+        // Insert filterBar before the table if possible
+        const table = container.querySelector('table');
+        if (table && table.parentElement) {
+            table.parentElement.insertBefore(filterBar, table);
+        } else {
+            container.insertBefore(filterBar, container.firstChild);
+        }
+
+        this._filterBar = filterBar;
+    }
+
+    toggleFilterBar() {
+        if (!this._filterBar) return;
+        this._filterBar.style.display = this._filterBar.style.display === 'none' ? 'block' : 'none';
+    }
+
+    applyFilters() {
+        if (!this._filterBar || !this.spreadsheet) return;
+        const inputs = Array.from(this._filterBar.querySelectorAll('.fusion-filter-input'));
+        const filters = inputs.map(i => (i.value || '').toString().toLowerCase());
+
+        // Get underlying data
+        const data = this.spreadsheet.getData();
+
+        // Find table rows
+        const container = document.getElementById(this.containerId);
+        const tbody = container.querySelector('table tbody');
+        const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+
+        data.forEach((row, rowIndex) => {
+            let visible = true;
+            for (let c = 0; c < filters.length; c++) {
+                const f = filters[c];
+                if (f && f.length > 0) {
+                    const cell = row[c] != null ? String(row[c]).toLowerCase() : '';
+                    if (!cell.includes(f)) { visible = false; break; }
+                }
+            }
+            if (rows[rowIndex]) rows[rowIndex].style.display = visible ? '' : 'none';
+        });
+    }
+
+    clearFilters() {
+        if (!this._filterBar || !this.spreadsheet) return;
+        const inputs = Array.from(this._filterBar.querySelectorAll('.fusion-filter-input'));
+        inputs.forEach(i => i.value = '');
+
+        // Show all rows
+        const container = document.getElementById(this.containerId);
+        const tbody = container.querySelector('table tbody');
+        const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+        rows.forEach(r => r.style.display = '');
     }
 }
 

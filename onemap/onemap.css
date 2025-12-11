@@ -2933,3 +2933,9 @@ body.dark-theme .dashboard-group-header.expanded .group-icon,
 body.dark-theme .dashboard-group-header.expanded .expand-icon {
     color: white;
 }
+
+
+/* Fusion Sheet filter inputs */
+.fusion-filter-bar { background: transparent; }
+.fusion-filter-input { outline: none; }
+body.dark-theme .fusion-filter-input { background: #2b2b2b; color: #ddd; border-color: #444; }

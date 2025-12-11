@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize when DOM is ready
     initDashboard();
@@ -78,15 +77,15 @@ function initDashboard() {
                 <i class="material-icons group-icon">${group.icon}</i>
                 <span>${group.title}</span>
             </div>
-            <i class="material-icons expand-icon">expand_more</i>
+            <i class="material-icons expand-icon">chevron_right</i>
         `;
         
         // Create Content
         const content = document.createElement('div');
         content.className = 'dashboard-group-content';
-        // Default expanded
-        content.style.display = 'block';
-        header.classList.add('expanded');
+        // Default collapsed
+        content.style.display = 'none';
+        //header.classList.add('expanded');
 
         // Toggle Logic
         header.addEventListener('click', () => {
