@@ -122,7 +122,20 @@ def get_rates(*, date: str | None = None, well: str | None = None) -> str:
         rates = rates[rates["date"].dt.date == date_to_filter.date()]
 
     if well is not None:
-        rates = rates[rates["well"] == well]
+        if well == "All":
+            # Aggregate rates for all wells by date
+            # We only sum the rate columns as requested
+            numeric_cols = ["orate", "wrate", "grate"]
+            # Filter for columns that actually exist
+            numeric_cols = [c for c in numeric_cols if c in rates.columns]
+            
+            if numeric_cols:
+                rates = rates.groupby("date")[numeric_cols].sum().reset_index()
+                rates["well"] = "All"
+                # Add other columns with default values or first values if needed?
+                # For now, just the rates and date are sufficient for the chart.
+        else:
+            rates = rates[rates["well"] == well]
 
     return rates.reset_index(drop=True).to_json(orient="records", date_format="iso")
 

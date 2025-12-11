@@ -907,3 +907,95 @@ body.dark-theme .leaflet-control-box-select.active {
     color: #dc3545;
     background-color: rgba(220, 53, 69, 0.1);
 }
+
+/* Selected Well Labels */
+.selected-well-label-content {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 2px 6px;
+    border: 1px solid #999;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    transform: translate(-50%, -25px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: none;
+}
+
+body.dark-theme .selected-well-label-content {
+    background: rgba(50, 50, 50, 0.9);
+    border-color: #666;
+    color: #eee;
+}
+
+/* Add Plot Button */
+.add-plot-btn {
+    border: 3px dashed #e0e0e0;
+    border-radius: 4px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #999;
+    font-size: 14px;
+    flex-shrink: 0;
+    background: #fafafa;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+}
+
+body.dark-theme .add-plot-btn {
+    border-color: #444;
+    background: #2b2b2b;
+    color: #aaa;
+}
+
+.add-plot-btn:hover {
+    background: #f0f0f0;
+    border-color: #ccc;
+}
+
+body.dark-theme .add-plot-btn:hover {
+    background: #333;
+    border-color: #555;
+}
+
+/* Chart Settings Panel */
+.chart-settings-panel {
+    background-color: white;
+    border: 1px solid #ccc;
+    color: #333;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 150px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+body.dark-theme .chart-settings-panel {
+    background-color: #2b2b2b;
+    border-color: #444;
+    color: #eee;
+}
+
+body.dark-theme .chart-settings-panel select {
+    background-color: #1e1e1e;
+    color: #eee;
+    border: 1px solid #555;
+}
+
+/* Well View Toggle Icon */
+.leaflet-control-well-view svg path {
+    fill: #333;
+}
+
+body.dark-theme .leaflet-control-well-view svg path {
+    fill: #ccc;
+}
+

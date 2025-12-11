@@ -328,6 +328,10 @@ L.Control.BoxSelect = L.Control.extend({
             window._selectedWellLabels.forEach(l => map.removeLayer(l));
         }
         window._selectedWellLabels = [];
+        
+        // Remove existing selection UI
+        const existingUI = document.getElementById('selection-ui');
+        if (existingUI) existingUI.remove();
 
         const selectedWells = [];
         map.eachLayer(layer => {
@@ -344,7 +348,7 @@ L.Control.BoxSelect = L.Control.extend({
                     const label = L.marker(layer.getLatLng(), {
                         icon: L.divIcon({
                             className: 'selected-well-label',
-                            html: `<div style="background: rgba(255, 255, 255, 0.9); padding: 2px 6px; border: 1px solid #999; border-radius: 4px; font-size: 11px; font-weight: 600; color: #333; white-space: nowrap; transform: translate(-50%, -25px); box-shadow: 0 2px 4px rgba(0,0,0,0.2); pointer-events: none;">${wellName}</div>`,
+                            html: `<div class="selected-well-label-content">${wellName}</div>`,
                             iconSize: [0, 0],
                             iconAnchor: [0, 0]
                         }),
@@ -357,20 +361,40 @@ L.Control.BoxSelect = L.Control.extend({
         });
         
         if (selectedWells.length > 0) {
-             // Show toast or summary
-             const toast = document.createElement('div');
-             toast.textContent = `Selected ${selectedWells.length} wells`;
-             Object.assign(toast.style, {
-                 position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-                 backgroundColor: '#333', color: 'white', padding: '10px 20px', borderRadius: '5px',
-                 zIndex: '10000', opacity: '0', transition: 'opacity 0.3s'
+             // Show persistent UI with clear button
+             const container = document.createElement('div');
+             container.id = 'selection-ui';
+             Object.assign(container.style, {
+                 position: 'fixed', top: '60px', left: '50%', transform: 'translateX(-50%)',
+                 backgroundColor: '#333', color: 'white', padding: '8px 15px', borderRadius: '5px',
+                 zIndex: '10000', display: 'flex', alignItems: 'center', gap: '10px',
+                 boxShadow: '0 2px 10px rgba(0,0,0,0.3)', fontSize: '13px'
              });
-             document.body.appendChild(toast);
-             requestAnimationFrame(() => toast.style.opacity = '1');
-             setTimeout(() => {
-                 toast.style.opacity = '0';
-                 setTimeout(() => toast.remove(), 300);
-             }, 3000);
+             
+             const text = document.createElement('span');
+             text.textContent = `Selected ${selectedWells.length} wells`;
+             container.appendChild(text);
+
+             const clearBtn = document.createElement('button');
+             clearBtn.textContent = 'Remove selection';
+             Object.assign(clearBtn.style, {
+                 background: '#555', border: 'none', color: 'white', padding: '4px 8px',
+                 borderRadius: '3px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold'
+             });
+             clearBtn.onmouseover = () => clearBtn.style.background = '#666';
+             clearBtn.onmouseout = () => clearBtn.style.background = '#555';
+             
+             clearBtn.onclick = () => {
+                 if (window.applyMarkerColorScheme) window.applyMarkerColorScheme();
+                 if (window._selectedWellLabels) {
+                    window._selectedWellLabels.forEach(l => map.removeLayer(l));
+                 }
+                 window._selectedWellLabels = [];
+                 container.remove();
+             };
+             
+             container.appendChild(clearBtn);
+             document.body.appendChild(container);
         }
     }
 });
@@ -388,8 +412,8 @@ L.Control.WellViewToggle = L.Control.extend({
         const button = L.DomUtil.create('a', 'leaflet-control-well-view', container);
         // Use SVG for Pie Chart Icon
         const pieIconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3V12H21Z" fill="#333"/>
-<path d="M21.0001 10C20.9463 5.63823 17.8183 2.00488 13.6667 1.12604V10H21.0001Z" fill="#666"/>
+<path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3V12H21Z"/>
+<path d="M21.0001 10C20.9463 5.63823 17.8183 2.00488 13.6667 1.12604V10H21.0001Z"/>
 </svg>`;
         
         button.innerHTML = pieIconSvg; 
@@ -414,8 +438,8 @@ L.Control.WellViewToggle = L.Control.extend({
     _toggleView: function(button) {
         // Use SVG for Pie Chart Icon
         const pieIconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3V12H21Z" fill="#333"/>
-<path d="M21.0001 10C20.9463 5.63823 17.8183 2.00488 13.6667 1.12604V10H21.0001Z" fill="#666"/>
+<path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3V12H21Z"/>
+<path d="M21.0001 10C20.9463 5.63823 17.8183 2.00488 13.6667 1.12604V10H21.0001Z"/>
 </svg>`;
 
         if (window._efsWellViewMode === 'pie') {
@@ -674,21 +698,7 @@ detailsContainer.innerHTML = `
 
                 <div id="extra-charts-area" class="extra-charts-area" style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px;"></div>
 
-                <div id="add-plot-btn" class="add-plot-btn" style="
-                    border: 3px dashed #e0e0e0; 
-                    border-radius: 4px; 
-                    height: 100px; 
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center; 
-                    cursor: pointer; 
-                    color: #999; 
-                    font-size: 14px;
-                    flex-shrink: 0;
-                    background: #fafafa;
-                    transition: all 0.2s;
-                    margin-bottom: 20px;
-                ">
+                <div id="add-plot-btn" class="add-plot-btn">
                     Click to add plot
                 </div>
             </div>
@@ -6974,7 +6984,7 @@ async function showWellDetails(wellId, options = {}) {
     });
     
         if (!options.isSubChart) {
-            titleEl.textContent = `Well: ${wellId}`;
+            titleEl.textContent = wellId === "All" ? "All Wells (Aggregated)" : `Well: ${wellId}`;
             controlsEl.innerHTML = ''; // Clear previous controls
             
             loadingEl.style.display = 'block';
@@ -7454,18 +7464,7 @@ async function showWellDetails(wellId, options = {}) {
                 position: 'fixed',
                 right: '20px', // Align to right side
                 top: (e.clientY + 20) + 'px',
-                zIndex: 10000,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-                minWidth: '150px',
-                maxHeight: '60vh',
-                overflowY: 'auto',
-                padding: '10px',
-                backgroundColor: 'white',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+                zIndex: 10000
             });
             
             const title = document.createElement('div');
@@ -11253,8 +11252,10 @@ function createWellSelectorWidget(mapInstance, wellNames) {
             
 		} else {
 			recenterToDefault();
-            // NEW: Close details sidebar when "All" is selected
-            if (details_sidebar) details_sidebar.hide();
+            // Show aggregated details for "All"
+            if (typeof showWellDetails === 'function') {
+                showWellDetails("All");
+            }
 		}
     }, "All", true); // Enable multiple selection
 
