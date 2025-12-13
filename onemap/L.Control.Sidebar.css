@@ -313,7 +313,7 @@
 	transform-origin: top left;
 	transition: transform 0.35s ease;
 	will-change: transform;
-	z-index: 5000; /* Increased to ensure visibility over sidebar */
+	z-index: 1200; /* Lowered to be behind sidebar (2000) */
 	pointer-events: auto;
 
     /* Glassmorphism Island Style */

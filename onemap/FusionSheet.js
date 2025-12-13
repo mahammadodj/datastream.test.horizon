@@ -3,6 +3,7 @@ class FusionSheet {
     constructor(containerId) {
         this.containerId = containerId;
         this.spreadsheet = null;
+        this.isUpdatingFromFormulaBar = false;
         this.init();
     }
 
@@ -58,6 +59,63 @@ class FusionSheet {
             comments: {
                 A1: 'Enter the main task description here',
                 B1: 'Select current status from dropdown'
+            },
+            // Event Handlers for Formula Bar
+            onselection: function(instance, x, y, x2, y2, origin) {
+                const xInt = parseInt(x);
+                const yInt = parseInt(y);
+                self.selectedCell = [xInt, yInt];
+                
+                let val = '';
+                // Try to get raw value if possible, otherwise formatted
+                if (self.spreadsheet.getValueFromCoords) {
+                    val = self.spreadsheet.getValueFromCoords(xInt, yInt);
+                } else {
+                    const cellName = jspreadsheet.getColumnNameFromId([xInt, yInt]);
+                    val = self.spreadsheet.getValue(cellName);
+                }
+                
+                if (self.formulaInput) {
+                    self.formulaInput.value = (val === null || val === undefined) ? '' : val;
+                }
+            },
+            onchange: function(instance, cell, x, y, value) {
+                if (self.selectedCell && self.selectedCell[0] === parseInt(x) && self.selectedCell[1] === parseInt(y)) {
+                    // Only update formula bar if the change didn't originate from it
+                    if (!self.isUpdatingFromFormulaBar && self.formulaInput) {
+                        self.formulaInput.value = (value === null || value === undefined) ? '' : value;
+                    }
+                }
+            },
+            onload: function() {
+                // Enhance Toolbar Icons - Use setTimeout to ensure DOM is ready
+                setTimeout(() => {
+                    const toolbar = container.querySelector('.jexcel_toolbar') || container.querySelector('.jspreadsheet_toolbar');
+                    if (toolbar) {
+                        const items = toolbar.querySelectorAll('.jexcel_toolbar_item i.material-icons, .jspreadsheet_toolbar_item i.material-icons');
+                        items.forEach(icon => {
+                            const content = icon.textContent.trim();
+                            // Handle cases where content might be different or empty
+                            if (!content) return;
+                            
+                            const btn = icon.closest('.jexcel_toolbar_item') || icon.closest('.jspreadsheet_toolbar_item');
+                            if (btn) {
+                                btn.classList.add('fusion-btn-' + content);
+                                // Add tooltip if not present
+                                if (!btn.title) {
+                                    const titles = {
+                                        'undo': 'Undo', 'redo': 'Redo', 'save': 'Save',
+                                        'format_bold': 'Bold', 'format_italic': 'Italic', 'format_underlined': 'Underline',
+                                        'format_align_left': 'Align Left', 'format_align_center': 'Align Center', 'format_align_right': 'Align Right',
+                                        'format_color_text': 'Text Color', 'format_color_fill': 'Fill Color',
+                                        'hub': 'Send to Lineage', 'delete': 'Clear Data'
+                                    };
+                                    if (titles[content]) btn.title = titles[content];
+                                }
+                            }
+                        });
+                    }
+                }, 100);
             },
             // 3. Custom Toolbar
             toolbar: [
@@ -235,6 +293,7 @@ class FusionSheet {
 
         // Create filter bar (hidden by default) and attach toolbar buttons
         try {
+            this.createFormulaBar(container);
             this.createFilterBar(container);
             // Add toolbar buttons into the existing toolbar area (if present)
             const toolbarEl = container.querySelector('.jexcel_toolbar');
@@ -258,6 +317,182 @@ class FusionSheet {
         } catch (err) {
             console.warn('Filter bar init failed', err);
         }
+    }
+
+    // Create a formula bar above the spreadsheet
+    createFormulaBar(container) {
+        if (!container) return;
+
+        const formulaBar = document.createElement('div');
+        formulaBar.className = 'fusion-formula-bar';
+        formulaBar.style.display = 'flex';
+        formulaBar.style.alignItems = 'center';
+        formulaBar.style.padding = '4px 8px';
+        formulaBar.style.borderBottom = '1px solid #ddd';
+        formulaBar.style.background = '#f8f9fa';
+        formulaBar.style.marginBottom = '5px';
+        formulaBar.style.position = 'relative'; // For absolute positioning of suggestions
+
+        const label = document.createElement('div');
+        label.innerText = 'fx';
+        label.style.fontWeight = 'bold';
+        label.style.color = '#666';
+        label.style.marginRight = '10px';
+        label.style.fontStyle = 'italic';
+        label.style.userSelect = 'none';
+        formulaBar.appendChild(label);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'fusion-formula-input';
+        input.style.flex = '1';
+        input.style.border = '1px solid #ccc';
+        input.style.padding = '4px 8px';
+        input.style.borderRadius = '4px';
+        input.style.height = '30px';
+        formulaBar.appendChild(input);
+
+        // Suggestion Box
+        const suggestionBox = document.createElement('div');
+        suggestionBox.className = 'fusion-formula-suggestions';
+        suggestionBox.style.position = 'absolute';
+        suggestionBox.style.top = '100%';
+        suggestionBox.style.left = '35px'; // Offset for 'fx' label
+        suggestionBox.style.width = '300px';
+        suggestionBox.style.maxHeight = '200px';
+        suggestionBox.style.overflowY = 'auto';
+        suggestionBox.style.background = 'white';
+        suggestionBox.style.border = '1px solid #ccc';
+        suggestionBox.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        suggestionBox.style.zIndex = '1000';
+        suggestionBox.style.display = 'none';
+        formulaBar.appendChild(suggestionBox);
+
+        this.formulaInput = input;
+        this.selectedCell = null;
+
+        // Supported Functions
+        const SUPPORTED_FUNCTIONS = [
+            'SUM', 'COUNT', 'MIN', 'MAX', 'AVG', 'AVERAGE', 'IF', 'SUMIF', 'COUNTIF', 
+            'CONCATENATE', 'VLOOKUP', 'HLOOKUP', 'INDEX', 'MATCH', 'ROUND', 'FLOOR', 
+            'CEILING', 'ABS', 'SQRT', 'POWER', 'MOD', 'TODAY', 'NOW', 'DATE', 'YEAR', 
+            'MONTH', 'DAY', 'LEN', 'TRIM', 'UPPER', 'LOWER', 'PROPER', 'LEFT', 'RIGHT', 'MID'
+        ];
+
+        // Insert at the top
+        container.insertBefore(formulaBar, container.firstChild);
+
+        const closeSuggestions = () => {
+            suggestionBox.style.display = 'none';
+            suggestionBox.innerHTML = '';
+        };
+
+        const applySuggestion = (funcName) => {
+            input.value = '=' + funcName + '(';
+            input.focus();
+            closeSuggestions();
+            // Trigger update to spreadsheet
+            updateSpreadsheet(input.value);
+        };
+
+        const updateSpreadsheet = (val) => {
+            if (this.selectedCell) {
+                this.isUpdatingFromFormulaBar = true;
+                const [x, y] = this.selectedCell;
+                
+                // Save cursor position and selection
+                const selectionStart = input.selectionStart;
+                const selectionEnd = input.selectionEnd;
+
+                if (this.spreadsheet.setValueFromCoords) {
+                    this.spreadsheet.setValueFromCoords(x, y, val);
+                } else {
+                    const cellName = jspreadsheet.getColumnNameFromId([x, y]);
+                    this.spreadsheet.setValue(cellName, val);
+                }
+                
+                // Restore focus to input if it was lost (jspreadsheet might steal it)
+                if (document.activeElement !== input) {
+                    input.focus();
+                    input.setSelectionRange(selectionStart, selectionEnd);
+                }
+
+                this.isUpdatingFromFormulaBar = false;
+            }
+        };
+
+        // Event listener for input
+        input.addEventListener('input', (e) => {
+            const val = e.target.value;
+            updateSpreadsheet(val);
+
+            // Autocomplete Logic
+            if (val.startsWith('=')) {
+                const query = val.substring(1).toUpperCase();
+                // Find the last word being typed if it looks like a function start
+                // Simple regex to find the last sequence of letters after = or non-word chars
+                const match = query.match(/([A-Z]+)$/);
+                
+                if (match) {
+                    const searchTerm = match[1];
+                    const matches = SUPPORTED_FUNCTIONS.filter(f => f.startsWith(searchTerm));
+                    
+                    if (matches.length > 0) {
+                        suggestionBox.innerHTML = '';
+                        matches.forEach(func => {
+                            const item = document.createElement('div');
+                            item.innerText = func;
+                            item.style.padding = '4px 8px';
+                            item.style.cursor = 'pointer';
+                            item.style.borderBottom = '1px solid #eee';
+                            
+                            item.onmouseover = () => { item.style.background = '#f0f0f0'; };
+                            item.onmouseout = () => { item.style.background = 'white'; };
+                            
+                            item.onclick = () => {
+                                // Replace the partial function name with the full one
+                                const prefix = val.substring(0, val.lastIndexOf(searchTerm));
+                                // Actually, for simplicity, if it's just =SU, replace with =SUM(
+                                // If complex formula like =SUM(A1, SU, we might need better parsing.
+                                // For now, let's assume simple start or simple replacement
+                                
+                                // Better replacement logic:
+                                const newVal = val.substring(0, val.length - searchTerm.length) + func + '(';
+                                input.value = newVal;
+                                updateSpreadsheet(newVal);
+                                input.focus();
+                                closeSuggestions();
+                            };
+                            suggestionBox.appendChild(item);
+                        });
+                        suggestionBox.style.display = 'block';
+                    } else {
+                        closeSuggestions();
+                    }
+                } else {
+                    closeSuggestions();
+                }
+            } else {
+                closeSuggestions();
+            }
+        });
+
+        // Close suggestions on click outside
+        document.addEventListener('click', (e) => {
+            if (!formulaBar.contains(e.target)) {
+                closeSuggestions();
+            }
+        });
+
+        // Keyboard navigation for suggestions
+        input.addEventListener('keydown', (e) => {
+            if (suggestionBox.style.display === 'block') {
+                if (e.key === 'Escape') {
+                    closeSuggestions();
+                }
+                // Could add ArrowUp/Down navigation here
+            }
+        });
     }
 
     // Create a simple filter bar above the spreadsheet table

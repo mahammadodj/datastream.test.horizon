@@ -341,9 +341,9 @@ L.Control.BoxSelect = L.Control.extend({
                     const label = L.marker(layer.getLatLng(), {
                         icon: L.divIcon({
                             className: 'selected-well-label',
-                            html: `<div class="selected-well-label-content">${wellName}</div>`,
+                            html: `<div class="selected-well-wrapper"><i class="material-icons selected-well-icon">location_on</i><span class="selected-well-text">${wellName}</span></div>`,
                             iconSize: [0, 0],
-                            iconAnchor: [0, 0]
+                            iconAnchor: [12, 24]
                         }),
                         interactive: false,
                         zIndexOffset: 1000
@@ -384,6 +384,28 @@ window.clearWellSelection = function() {
     // Reset colors (CircleMarkers)
     if (window.applyMarkerColorScheme) window.applyMarkerColorScheme();
     
+    // Fallback: Ensure no green markers remain (for markers not in registry)
+    map.eachLayer(layer => {
+        if ((layer instanceof L.Marker || layer instanceof L.CircleMarker) && layer.options && layer.options.__well_id) {
+             // Check if it is green (exact match for the highlight color)
+             if (layer.options.color === '#00FF00' || layer.options.fillColor === '#00FF00') {
+                 const wellId = layer.options.__well_id;
+                 const dataset = window._efsDataset;
+                 if (dataset && dataset.rowsByWell) {
+                     const row = dataset.rowsByWell.get(wellId);
+                     if (row) {
+                         // We need resolveMarkerColorForRow and applyColorToMarker
+                         // Since they are hoisted, we can use them.
+                         if (typeof resolveMarkerColorForRow === 'function' && typeof applyColorToMarker === 'function') {
+                             const resolvedColor = resolveMarkerColorForRow(row);
+                             applyColorToMarker(layer, resolvedColor);
+                         }
+                     }
+                 }
+             }
+        }
+    });
+
     // Remove Pie Chart Highlights
     document.querySelectorAll('.selected-well-highlight').forEach(el => {
         el.classList.remove('selected-well-highlight');
@@ -490,35 +512,20 @@ L.Control.PieChartSettings = L.Control.extend({
 
     onAdd: function(map) {
         const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom well-pie-settings');
-        container.style.backgroundColor = 'white';
-        container.style.padding = '10px';
+        // Styles moved to CSS for theme support
         container.style.display = 'none'; // Hidden by default
-        container.style.flexDirection = 'column';
-        container.style.gap = '5px';
-        container.style.minWidth = '150px';
-        container.style.border = '2px solid rgba(0,0,0,0.2)';
-        container.style.borderRadius = '4px';
 
         // Header (Title + Close Button)
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-        header.style.marginBottom = '5px';
-        header.style.borderBottom = '1px solid #eee';
-        header.style.paddingBottom = '3px';
-
+        header.className = 'well-pie-settings-header';
+        
         const title = document.createElement('div');
         title.textContent = 'Pie Chart Settings';
-        title.style.fontWeight = 'bold';
-        title.style.fontSize = '12px';
+        title.className = 'well-pie-settings-title';
         
         const closeBtn = document.createElement('div');
         closeBtn.innerHTML = '&times;';
-        closeBtn.style.cursor = 'pointer';
-        closeBtn.style.fontSize = '16px';
-        closeBtn.style.fontWeight = 'bold';
-        closeBtn.style.lineHeight = '1';
+        closeBtn.className = 'well-pie-settings-close';
         closeBtn.title = 'Close Settings';
         
         closeBtn.onclick = () => {
@@ -531,22 +538,17 @@ L.Control.PieChartSettings = L.Control.extend({
 
         // Size Slider
         const sizeContainer = document.createElement('div');
-        sizeContainer.style.display = 'flex';
-        sizeContainer.style.alignItems = 'center';
-        sizeContainer.style.justifyContent = 'space-between';
-        sizeContainer.style.marginBottom = '5px';
+        sizeContainer.className = 'well-pie-settings-row';
         
         const sizeLabel = document.createElement('label');
         sizeLabel.textContent = 'Size:';
-        sizeLabel.style.fontSize = '11px';
         
         const sizeInput = document.createElement('input');
         sizeInput.type = 'range';
         sizeInput.min = '10';
         sizeInput.max = '60';
         sizeInput.value = window._efsPieSettings ? window._efsPieSettings.size : 24;
-        sizeInput.style.width = '80px';
-        sizeInput.style.cursor = 'pointer';
+        sizeInput.className = 'well-pie-settings-slider';
         
         sizeInput.addEventListener('input', (e) => {
             this._updateSettings('size', parseInt(e.target.value));
@@ -556,18 +558,49 @@ L.Control.PieChartSettings = L.Control.extend({
         sizeContainer.appendChild(sizeInput);
         container.appendChild(sizeContainer);
 
+        // Scale By Dropdown
+        const scaleContainer = document.createElement('div');
+        scaleContainer.className = 'well-pie-settings-row';
+
+        const scaleLabel = document.createElement('label');
+        scaleLabel.textContent = 'Scale by:';
+
+        const scaleSelect = document.createElement('select');
+        scaleSelect.className = 'well-pie-settings-select';
+        
+        const scaleOptions = [
+            { value: 'none', text: 'None' },
+            { value: 'orate', text: 'Oil' },
+            { value: 'grate', text: 'Gas' },
+            { value: 'wrate', text: 'Water' }
+        ];
+
+        scaleOptions.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            if (window._efsPieSettings && window._efsPieSettings.scaleBy === opt.value) {
+                option.selected = true;
+            }
+            scaleSelect.appendChild(option);
+        });
+
+        scaleSelect.addEventListener('change', (e) => {
+            this._updateSettings('scaleBy', e.target.value);
+        });
+
+        scaleContainer.appendChild(scaleLabel);
+        scaleContainer.appendChild(scaleSelect);
+        container.appendChild(scaleContainer);
+
         // Toggles
         ['showOrate', 'showGrate', 'showWrate'].forEach(key => {
             const toggleContainer = document.createElement('div');
-            toggleContainer.style.display = 'flex';
-            toggleContainer.style.alignItems = 'center';
-            toggleContainer.style.marginTop = '3px';
+            toggleContainer.className = 'well-pie-settings-row toggle-row';
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.checked = window._efsPieSettings ? window._efsPieSettings[key] : true;
-            checkbox.style.marginRight = '5px';
-            checkbox.style.cursor = 'pointer';
             
             checkbox.addEventListener('change', (e) => {
                 this._updateSettings(key, e.target.checked);
@@ -575,8 +608,6 @@ L.Control.PieChartSettings = L.Control.extend({
 
             const label = document.createElement('label');
             label.textContent = key === 'showOrate' ? 'Oil (Green)' : (key === 'showGrate' ? 'Gas (Red)' : 'Water (Blue)');
-            label.style.fontSize = '11px';
-            label.style.cursor = 'pointer';
             label.onclick = () => checkbox.click();
 
             toggleContainer.appendChild(checkbox);
@@ -2147,6 +2178,28 @@ function setupAnalyticalDashboard() {
     dashboard.style.overflow = 'auto';
     // dashboard.style.backgroundColor = '#f5f5f5'; // Let theme handle background
 
+    // Drag and Drop Support
+    dashboard.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    });
+
+    dashboard.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const type = e.dataTransfer.getData('widgetType');
+        if (type) {
+            const rect = dashboard.getBoundingClientRect();
+            const x = e.clientX - rect.left + dashboard.scrollLeft;
+            const y = e.clientY - rect.top + dashboard.scrollTop;
+            
+            if (type === 'container') {
+                createLayoutContainer(x, y);
+            } else {
+                createDashboardChart(type, x, y);
+            }
+        }
+    });
+
     // Context Menu
     dashboard.addEventListener('contextmenu', (e) => {
         e.preventDefault();
@@ -2181,18 +2234,8 @@ function setupAnalyticalDashboard() {
         });
 
         const options = [
-            { label: 'Pie Chart', type: 'pie', icon: '🥧' },
-            { label: 'Scatter Plot', type: 'scatter', icon: '∴' },
-            { label: 'Line Plot', type: 'line', icon: '📈' },
-            { label: 'Area Chart', type: 'area', icon: '⛰️' },
-            { label: 'Bar Plot', type: 'bar', icon: '📊' },
-            { label: 'Box Plot', type: 'box', icon: '◰' },
-            { label: 'Bubble Plot', type: 'bubble', icon: '🫧' },
-            { label: 'Gantt Chart', type: 'gantt', icon: '📅' },
-            { label: 'Tree Map', type: 'treemap', icon: '🔲' },
-            { label: 'Radar Chart', type: 'radar', icon: '🕸️' },
-            { label: 'Data Table', type: 'table', icon: '📋' },
-            { label: 'Layout Container', type: 'container', icon: '📦' }
+            { label: 'Align All', action: 'align_all', icon: '⊞' },
+            { label: 'Remove All', action: 'remove_all', icon: '🗑️' }
         ];
 
         options.forEach(opt => {
@@ -2210,15 +2253,53 @@ function setupAnalyticalDashboard() {
             item.onmouseout = () => item.style.backgroundColor = 'transparent';
             
             item.onclick = () => {
-                // Calculate relative position in dashboard
-                const rect = dashboard.getBoundingClientRect();
-                const x = e.clientX - rect.left + dashboard.scrollLeft;
-                const y = e.clientY - rect.top + dashboard.scrollTop;
-                
-                if (opt.type === 'container') {
-                    createLayoutContainer(x, y);
-                } else {
-                    createDashboardChart(opt.type, x, y);
+                if (opt.action === 'remove_all') {
+                    if(confirm('Are you sure you want to remove all plots?')) {
+                        const charts = dashboard.querySelectorAll('.dashboard-chart-container, .dashboard-layout-container');
+                        charts.forEach(c => c.remove());
+                        if (typeof updateDashboardControlsVisibility === 'function') {
+                            updateDashboardControlsVisibility();
+                        }
+                        updateDashboardEmptyState();
+                    }
+                } else if (opt.action === 'align_all') {
+                    const charts = dashboard.querySelectorAll('.dashboard-chart-container, .dashboard-layout-container');
+                    const containerWidth = dashboard.clientWidth;
+                    
+                    // Calculate sidebar offset
+                    const sidebar = document.getElementById('dashboard-sidebar');
+                    const collapsedSidebar = document.getElementById('dashboard-sidebar-collapsed');
+                    let sidebarOffset = 0;
+
+                    if (sidebar && getComputedStyle(sidebar).display !== 'none') {
+                        sidebarOffset = sidebar.offsetWidth;
+                    } else if (collapsedSidebar && getComputedStyle(collapsedSidebar).display !== 'none') {
+                        sidebarOffset = collapsedSidebar.offsetWidth;
+                    }
+
+                    const padding = 20;
+                    let currentX = sidebarOffset + padding;
+                    let currentY = padding;
+                    let rowHeight = 0;
+                    const gap = 20;
+
+                    charts.forEach(c => {
+                        const width = c.offsetWidth;
+                        const height = c.offsetHeight;
+
+                        // Check if we need to wrap
+                        if (currentX + width > containerWidth && currentX > (sidebarOffset + padding)) {
+                            currentX = sidebarOffset + padding;
+                            currentY += rowHeight + gap;
+                            rowHeight = 0;
+                        }
+
+                        c.style.left = currentX + 'px';
+                        c.style.top = currentY + 'px';
+
+                        rowHeight = Math.max(rowHeight, height);
+                        currentX += width + gap;
+                    });
                 }
                 menu.remove();
             };
@@ -2238,9 +2319,6 @@ function setupAnalyticalDashboard() {
 
     // Add Theme Control Widget
     createDashboardThemeControl(dashboard);
-    
-    // Add Dashboard Controls (Remove All, etc.)
-    createDashboardControls(dashboard);
 }
 
 function createDashboardControls(container) {
@@ -2482,6 +2560,16 @@ function createDashboardThemeControl(container) {
     container.appendChild(control);
 }
 
+function updateDashboardEmptyState() {
+    const dashboard = document.getElementById('dashboard-content');
+    const emptyState = dashboard.querySelector('.dashboard-empty-state');
+    const hasCharts = dashboard.querySelectorAll('.dashboard-chart-container, .dashboard-layout-container').length > 0;
+    
+    if (emptyState) {
+        emptyState.style.display = hasCharts ? 'none' : 'block';
+    }
+}
+
 function createDashboardChart(type, x, y, parentElement = null) {
     const dashboard = document.getElementById('dashboard-content');
     const isDark = document.body.classList.contains('dark-theme');
@@ -2684,7 +2772,10 @@ function createDashboardChart(type, x, y, parentElement = null) {
     closeBtn.innerHTML = '&times;';
     closeBtn.style.cursor = 'pointer';
     closeBtn.style.fontSize = '16px';
-    closeBtn.onclick = () => container.remove();
+    closeBtn.onclick = () => {
+        container.remove();
+        updateDashboardEmptyState();
+    };
     
     // Add Settings Button for Scatter/Line/Bar/Pie Plot
     if (type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') {
@@ -3418,6 +3509,102 @@ function createDashboardChart(type, x, y, parentElement = null) {
         return;
     }
 
+    if (type === 'radio') {
+        // Update Header Style to match image
+        header.style.backgroundColor = '#0078d7'; // Blue
+        header.style.color = 'white';
+        header.style.padding = '5px 10px';
+        header.style.borderTopLeftRadius = '6px'; // Match container radius - padding
+        header.style.borderTopRightRadius = '6px';
+        header.style.marginBottom = '0';
+        
+        // Hide header by default
+        header.style.display = 'none';
+        
+        container.addEventListener('mouseenter', () => {
+            header.style.display = 'flex';
+            container.style.border = '1px solid #0078d7';
+        });
+        container.addEventListener('mouseleave', () => {
+            header.style.display = 'none';
+            container.style.border = '1px solid transparent';
+        });
+        
+        // Update Title
+        title.textContent = 'w_radio_1';
+        title.style.color = 'white';
+        title.style.border = 'none';
+        
+        // Update Container
+        container.style.padding = '0'; 
+        container.style.border = '1px solid transparent';
+        container.style.backgroundColor = 'white';
+        container.style.height = 'auto';
+        container.style.width = 'auto';
+        container.style.minWidth = '150px';
+        
+        // Content Wrapper
+        const wrapper = document.createElement('div');
+        Object.assign(wrapper.style, {
+            padding: '15px',
+            backgroundColor: 'white',
+            color: '#333',
+            flex: '1',
+            display: 'flex',
+            flexDirection: 'column',
+            borderBottomLeftRadius: '8px',
+            borderBottomRightRadius: '8px'
+        });
+        
+        const form = document.createElement('form');
+        
+        ['value1', 'value2'].forEach((val, idx) => {
+            const div = document.createElement('div');
+            div.style.marginBottom = '8px';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'radio_group_' + Date.now(); 
+            input.id = `radio_${Date.now()}_${idx}`;
+            input.value = val;
+            if (idx === 0) input.checked = true;
+            input.style.marginRight = '8px';
+            input.style.cursor = 'pointer';
+            
+            const label = document.createElement('label');
+            label.htmlFor = input.id;
+            label.textContent = val;
+            label.style.cursor = 'pointer';
+            label.style.fontSize = '14px';
+            
+            div.appendChild(input);
+            div.appendChild(label);
+            form.appendChild(div);
+        });
+        
+        wrapper.appendChild(form);
+        canvasContainer.appendChild(wrapper);
+        
+        container.appendChild(canvasContainer);
+        if (parentElement) parentElement.appendChild(container);
+        else dashboard.appendChild(container);
+        
+        // Context Menu for Settings
+        container.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof openRadioSettings === 'function') {
+                openRadioSettings(container, wrapper);
+            }
+        });
+
+        if (!parentElement) addDragLogic(header, container);
+        updateDashboardControlsVisibility();
+        return;
+    }
+
     const canvas = document.createElement('canvas');
     // canvasContainer.appendChild(canvas); // Moved to initChart
     container.appendChild(canvasContainer);
@@ -3610,14 +3797,14 @@ function createDashboardChart(type, x, y, parentElement = null) {
         btnGroup.appendChild(confirmBtn);
     };
 
-    if (type !== 'scatter' && type !== 'line' && type !== 'bar') {
-        startupDiv.appendChild(msg);
-        startupDiv.appendChild(btnGroup);
-        canvasContainer.appendChild(startupDiv);
-    }
+    // if (type !== 'scatter' && type !== 'line' && type !== 'bar') {
+    //     startupDiv.appendChild(msg);
+    //     startupDiv.appendChild(btnGroup);
+    //     canvasContainer.appendChild(startupDiv);
+    // }
 
     const initChart = (sourceTable, config = null) => {
-        if (startupDiv.parentNode) startupDiv.remove();
+        // if (startupDiv.parentNode) startupDiv.remove();
         if (!canvas.parentNode) canvasContainer.appendChild(canvas);
 
     // Configure Chart Data based on Type
@@ -4048,6 +4235,9 @@ function createDashboardChart(type, x, y, parentElement = null) {
     }
     }; // End initChart
 
+    // Auto-init with sample data
+    initChart(null);
+
     const openChartSettings = (chart) => {
         // Create Drawer Overlay
         const overlay = document.createElement('div');
@@ -4440,6 +4630,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
     }
     
     updateDashboardControlsVisibility();
+    updateDashboardEmptyState();
 }
 
 function createLayoutContainer(x, y) {
@@ -4574,6 +4765,7 @@ function createLayoutContainer(x, y) {
     closeBtn.onclick = () => {
         container.remove();
         updateDashboardControlsVisibility();
+        updateDashboardEmptyState();
     };
     
     controls.appendChild(fullBtn);
@@ -4690,6 +4882,7 @@ function createLayoutContainer(x, y) {
     
     dashboard.appendChild(container);
     updateDashboardControlsVisibility();
+    updateDashboardEmptyState();
 }
 
 function addResizeLogic(resizer, container) {
@@ -9590,6 +9783,26 @@ const markerColorState = {
 };
 window._efsMarkerColorState = markerColorState;
 
+const markerShapeState = {
+    activeColumn: null,
+    shapesByValue: {},
+    defaultShape: 'circle'
+};
+window._efsMarkerShapeState = markerShapeState;
+
+function resolveMarkerShapeForRow(row) {
+    const state = markerShapeState;
+    if (state.activeColumn && row) {
+        const column = state.activeColumn;
+        const valueKey = norm(row[column]);
+        const palette = state.shapesByValue || {};
+        if (Object.prototype.hasOwnProperty.call(palette, valueKey)) {
+            return palette[valueKey];
+        }
+    }
+    return state.defaultShape;
+}
+
 function resolveMarkerColorForRow(row) {
 	const state = markerColorState;
 	if (state.activeColumn && row) {
@@ -9770,10 +9983,26 @@ function createCustomMarker(latlng, shape, options) {
     return marker;
 }
 
-function createPieChartIcon(well, size = 24, isSelected = false) {
+function createPieChartIcon(well, size = 24, isSelected = false, scalingContext = null) {
     // Use global settings if available, otherwise fallback to defaults
     const settings = window._efsPieSettings || { size: 24, showOrate: true, showGrate: true, showWrate: true };
-    const currentSize = settings.size || size;
+    let currentSize = settings.size || size;
+
+    // Apply Scaling
+    if (scalingContext && scalingContext.scaleBy && scalingContext.maxValue > 0) {
+        const val = parseFloat(well[scalingContext.scaleBy]) || 0;
+        // Linear scaling of diameter: (val / max) * maxSize
+        // Ensure a minimum size so it's visible (e.g., 20% of max size)
+        const minSizeRatio = 0.2;
+        const ratio = val / scalingContext.maxValue;
+        // currentSize becomes the "Max Size" set by the slider
+        const maxSize = currentSize;
+        currentSize = maxSize * (minSizeRatio + (1 - minSizeRatio) * ratio);
+        
+        // If value is 0, maybe show very small or hide? 
+        // Let's stick to the min size for 0 values so they are still clickable/visible as dots
+        if (val <= 0) currentSize = maxSize * minSizeRatio;
+    }
 
     const orate = settings.showOrate ? (parseFloat(well.orate) || 0) : 0;
     const grate = settings.showGrate ? (parseFloat(well.grate) || 0) : 0;
@@ -9861,6 +10090,18 @@ function populateWellPointFeatureGroup(wells, group, statusColorFn, registry) {
         window._efsWellMarkerCache.clear();
     }
 
+    // Calculate Max Values for Scaling if needed
+    let scalingContext = null;
+    if (window._efsPieSettings && window._efsPieSettings.scaleBy && window._efsPieSettings.scaleBy !== 'none') {
+        const key = window._efsPieSettings.scaleBy;
+        let maxVal = 0;
+        wells.forEach(w => {
+            const val = parseFloat(w[key]) || 0;
+            if (val > maxVal) maxVal = val;
+        });
+        scalingContext = { scaleBy: key, maxValue: maxVal };
+    }
+
 	wells.forEach(w => {
 		const wellName = norm(w.well);
 		if (!wellName) return;
@@ -9882,7 +10123,7 @@ function populateWellPointFeatureGroup(wells, group, statusColorFn, registry) {
         
         // Check View Mode
         if (window._efsWellViewMode === 'pie') {
-            const icon = createPieChartIcon(w, undefined, isSelected);
+            const icon = createPieChartIcon(w, undefined, isSelected, scalingContext);
             marker = L.marker([w.lat, w.lon], { icon: icon });
         } else {
             const otypeKey = w.otype ? w.otype.toLowerCase() : null;
@@ -9895,7 +10136,13 @@ function populateWellPointFeatureGroup(wells, group, statusColorFn, registry) {
                 customStyle = { ...customStyle, color: 'purple' };
             }
 
-            if (customStyle) {
+            // Determine Shape
+            let shapeToUse = null;
+            if (markerShapeState.activeColumn) {
+                shapeToUse = resolveMarkerShapeForRow(w);
+            }
+
+            if (customStyle && !shapeToUse) {
                  marker = createCustomMarker([w.lat, w.lon], customStyle.shape, {
                     color: customStyle.color || colorToUse,
                     fillColor: customStyle.color || colorToUse,
@@ -9903,23 +10150,22 @@ function populateWellPointFeatureGroup(wells, group, statusColorFn, registry) {
                     radius: 4
                 });
             } else {
-                // Check for Injector (Upside Down Triangle) vs Producer (Circle)
-                if (w.otype && /inject/i.test(w.otype)) {
-                    marker = createCustomMarker([w.lat, w.lon], 'triangle', {
-                        color: colorToUse,
-                        fillColor: colorToUse,
-                        fillOpacity: 1.0,
-                        radius: 4
-                    });
-                } else {
-                    // Default to Circle (Producer)
-                    marker = createCustomMarker([w.lat, w.lon], 'circle', {
-                        color: colorToUse,
-                        fillColor: colorToUse,
-                        fillOpacity: 1.0,
-                        radius: 4
-                    });
+                // Default logic if no shape override
+                let shape = shapeToUse;
+                if (!shape) {
+                    if (w.otype && /inject/i.test(w.otype)) {
+                        shape = 'triangle';
+                    } else {
+                        shape = 'circle';
+                    }
                 }
+
+                marker = createCustomMarker([w.lat, w.lon], shape, {
+                    color: colorToUse,
+                    fillColor: colorToUse,
+                    fillOpacity: 1.0,
+                    radius: 4
+                });
             }
         }
 
@@ -10001,12 +10247,51 @@ window.applyMarkerColorScheme = function(options = {}) {
 	}));
 };
 
+window.applyMarkerShapeScheme = function(options = {}) {
+    const columnName = (typeof options.column === "string" && options.column.trim()) ? options.column.trim() : null;
+    const shapesInput = (options.shapes && typeof options.shapes === "object") ? options.shapes : null;
+
+    if (!columnName) {
+        markerShapeState.activeColumn = null;
+        markerShapeState.shapesByValue = {};
+    } else {
+        const normalizedShapes = {};
+        if (shapesInput) {
+            for (const [rawKey, rawValue] of Object.entries(shapesInput)) {
+                const key = norm(rawKey);
+                if (!key && key !== "") continue;
+                normalizedShapes[key] = rawValue;
+            }
+        }
+        markerShapeState.activeColumn = columnName;
+        markerShapeState.shapesByValue = normalizedShapes;
+    }
+
+    // Re-render markers
+    if (window._efsDataset && window._efsWellLayer) {
+        populateWellPointFeatureGroup(
+            window._efsDataset.wells, 
+            window._efsWellLayer, 
+            window._efsStatusColors ? window._efsStatusColors.resolve : null, 
+            window._efsWellRegistry
+        );
+    }
+};
+
 window.getMarkerColoringState = function() {
 	return {
 		activeColumn: markerColorState.activeColumn,
 		colorsByValue: { ...(markerColorState.colorsByValue || {}) },
 		defaultColor: markerColorState.defaultColor
 	};
+};
+
+window.getMarkerShapeState = function() {
+    return {
+        activeColumn: markerShapeState.activeColumn,
+        shapesByValue: { ...(markerShapeState.shapesByValue || {}) },
+        defaultShape: markerShapeState.defaultShape
+    };
 };
 
 window.getCategoricalColumnsInfo = function() {
@@ -11108,7 +11393,7 @@ function createFormationSelectorWidget(mapInstance, formationNames) {
 	container.style.alignItems = 'center';
 	container.style.gap = '6px';
 	container.style.fontFamily = 'Arial, sans-serif';
-	container.style.zIndex = '2100';
+	container.style.zIndex = '1200';
 
 	// Label
 	const label = L.DomUtil.create('label', '', container);
@@ -11194,7 +11479,7 @@ function createWellSelectorWidget(mapInstance, wellNames) {
 	container.style.alignItems = 'center';
 	container.style.gap = '6px';
 	container.style.fontFamily = 'Arial, sans-serif';
-	container.style.zIndex = '2100';
+	container.style.zIndex = '1200';
 
 	// Label
 	const label = L.DomUtil.create('label', '', container);

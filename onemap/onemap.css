@@ -2474,6 +2474,87 @@ body.dark-theme .jexcel_toolbar_item.jexcel_toolbar_divisor {
     background-color: #505050 !important;
 }
 
+/* Enhanced Fusion Sheet Icons (Excel-like) */
+.fusion-btn-undo, .fusion-btn-redo {
+    color: #1976d2 !important; /* Blue */
+}
+
+.fusion-btn-save, .fusion-btn-save i {
+    color: #2e7d32 !important; /* Green */
+}
+
+.fusion-btn-format_bold, .fusion-btn-format_bold i,
+.fusion-btn-format_italic, .fusion-btn-format_italic i,
+.fusion-btn-format_underlined, .fusion-btn-format_underlined i {
+    color: #424242 !important;
+}
+
+.fusion-btn-format_align_left, .fusion-btn-format_align_left i,
+.fusion-btn-format_align_center, .fusion-btn-format_align_center i,
+.fusion-btn-format_align_right, .fusion-btn-format_align_right i {
+    color: #616161 !important;
+}
+
+.fusion-btn-format_color_text, .fusion-btn-format_color_text i {
+    color: #d32f2f !important; /* Red A */
+    position: relative;
+}
+.fusion-btn-format_color_text::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 6px;
+    right: 6px;
+    height: 3px;
+    background-color: #d32f2f;
+}
+
+.fusion-btn-format_color_fill, .fusion-btn-format_color_fill i {
+    color: #fbc02d !important; /* Yellow bucket */
+    position: relative;
+}
+.fusion-btn-format_color_fill::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 6px;
+    right: 6px;
+    height: 3px;
+    background-color: #fbc02d;
+}
+
+.fusion-btn-hub, .fusion-btn-hub i {
+    color: #7b1fa2 !important; /* Purple */
+}
+
+.fusion-btn-delete, .fusion-btn-delete i {
+    color: #c62828 !important; /* Red */
+}
+
+/* Dark Mode Adjustments for Enhanced Icons */
+body.dark-theme .fusion-btn-undo, body.dark-theme .fusion-btn-undo i,
+body.dark-theme .fusion-btn-redo, body.dark-theme .fusion-btn-redo i { color: #64b5f6 !important; }
+
+body.dark-theme .fusion-btn-save, body.dark-theme .fusion-btn-save i { color: #81c784 !important; }
+
+body.dark-theme .fusion-btn-format_bold, body.dark-theme .fusion-btn-format_bold i,
+body.dark-theme .fusion-btn-format_italic, body.dark-theme .fusion-btn-format_italic i,
+body.dark-theme .fusion-btn-format_underlined, body.dark-theme .fusion-btn-format_underlined i { color: #e0e0e0 !important; }
+
+body.dark-theme .fusion-btn-format_align_left, body.dark-theme .fusion-btn-format_align_left i,
+body.dark-theme .fusion-btn-format_align_center, body.dark-theme .fusion-btn-format_align_center i,
+body.dark-theme .fusion-btn-format_align_right, body.dark-theme .fusion-btn-format_align_right i { color: #bdbdbd !important; }
+
+body.dark-theme .fusion-btn-format_color_text, body.dark-theme .fusion-btn-format_color_text i { color: #ef5350 !important; }
+body.dark-theme .fusion-btn-format_color_text::after { background-color: #ef5350; }
+
+body.dark-theme .fusion-btn-format_color_fill, body.dark-theme .fusion-btn-format_color_fill i { color: #fff176 !important; }
+body.dark-theme .fusion-btn-format_color_fill::after { background-color: #fff176; }
+
+body.dark-theme .fusion-btn-hub, body.dark-theme .fusion-btn-hub i { color: #ba68c8 !important; }
+
+body.dark-theme .fusion-btn-delete, body.dark-theme .fusion-btn-delete i { color: #e57373 !important; }
+
 
 /* --- SELECTION WIDGET & HIGHLIGHT STYLES --- */
 
@@ -2939,3 +3020,1100 @@ body.dark-theme .dashboard-group-header.expanded .expand-icon {
 .fusion-filter-bar { background: transparent; }
 .fusion-filter-input { outline: none; }
 body.dark-theme .fusion-filter-input { background: #2b2b2b; color: #ddd; border-color: #444; }
+
+/* Pie Chart Settings Control */
+.well-pie-settings {
+    background-color: white;
+    color: #333;
+    padding: 10px;
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    gap: 5px;
+    min-width: 150px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+
+.well-pie-settings .pie-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 3px;
+}
+
+.well-pie-settings .pie-settings-title {
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.well-pie-settings .pie-settings-close {
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.well-pie-settings .pie-settings-row {
+    display: flex;
+    align-items: center;
+    margin-top: 3px;
+}
+
+.well-pie-settings .pie-settings-row label {
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.well-pie-settings .pie-settings-row input[type="range"] {
+    width: 80px;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+.well-pie-settings .pie-settings-row input[type="checkbox"] {
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+/* Dark Theme Overrides */
+/* Pie Chart Settings Control */
+.well-pie-settings {
+    background-color: white;
+    color: #333;
+    padding: 10px;
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    gap: 5px;
+    min-width: 150px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.well-pie-settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 3px;
+}
+
+.well-pie-settings-title {
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.well-pie-settings-close {
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.well-pie-settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.well-pie-settings-row.toggle-row {
+    justify-content: flex-start;
+    margin-top: 3px;
+}
+
+.well-pie-settings-row label {
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.well-pie-settings-slider {
+    width: 80px;
+    cursor: pointer;
+}
+
+.well-pie-settings-select {
+    width: 80px;
+    font-size: 11px;
+    padding: 2px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.well-pie-settings-row input[type="checkbox"] {
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+/* Dark Theme Overrides */
+body.dark-theme .well-pie-settings {
+    background-color: #333;
+    color: #eee;
+    border-color: rgba(255,255,255,0.1);
+}
+
+body.dark-theme .well-pie-settings-header {
+    border-bottom: 1px solid #555;
+}
+
+/* Marker Settings Modal Z-Index Fix */
+.modal-backdrop {
+    z-index: 2990 !important;
+}
+#marker-settings-modal {
+    z-index: 3000 !important;
+}
+
+/* Marker Settings Styling */
+#marker-settings-modal .modal-content {
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    border: none;
+    overflow: hidden;
+}
+
+#marker-settings-modal .modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    padding: 10px 15px;
+}
+
+#marker-settings-modal .modal-title {
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+}
+
+#marker-settings-modal .modal-body {
+    padding: 15px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.marker-settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.marker-settings-section {
+    background: #fff;
+    border-radius: 6px;
+}
+
+.marker-settings-field {
+    margin-bottom: 8px;
+}
+
+.marker-settings-label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+    color: #555;
+    font-size: 12px;
+}
+
+.marker-settings-control {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.marker-settings-select {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    background-color: #fff;
+    transition: border-color 0.2s;
+}
+
+.marker-settings-select:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.marker-settings-reset {
+    padding: 6px 10px;
+    background-color: #f1f1f1;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #666;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.marker-settings-reset:hover {
+    background-color: #e1e1e1;
+    color: #333;
+}
+
+.marker-settings-placeholder {
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    border: 1px dashed #ddd;
+    font-size: 12px;
+}
+
+.marker-settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.marker-color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+.marker-color-input {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+}
+
+.marker-color-label {
+    flex: 1;
+    font-size: 13px;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.marker-color-count {
+    font-size: 11px;
+    color: #888;
+    background: #eee;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+/* Dark Theme Support */
+body.dark-theme #marker-settings-modal .modal-content {
+    background-color: #2b2b2b;
+    color: #eee;
+}
+
+body.dark-theme #marker-settings-modal .modal-header {
+    background-color: #333;
+    border-bottom-color: #444;
+}
+
+body.dark-theme #marker-settings-modal .modal-title {
+    color: #eee;
+}
+
+body.dark-theme .marker-settings-section {
+    background: transparent;
+}
+
+body.dark-theme .marker-settings-label {
+    color: #ccc;
+}
+
+body.dark-theme .marker-settings-select {
+    background-color: #333;
+    border-color: #555;
+    color: #eee;
+}
+
+body.dark-theme .marker-settings-reset {
+    background-color: #444;
+    border-color: #555;
+    color: #ccc;
+}
+
+body.dark-theme .marker-settings-reset:hover {
+    background-color: #555;
+    color: #fff;
+}
+
+body.dark-theme .marker-settings-placeholder {
+    background-color: #333;
+    border-color: #555;
+    color: #888;
+}
+
+body.dark-theme .marker-color-row {
+    background-color: #333;
+    border-color: #444;
+}
+
+body.dark-theme .marker-color-label {
+    color: #eee;
+}
+
+body.dark-theme .marker-color-count {
+    background-color: #444;
+    color: #aaa;
+}
+
+body.dark-theme .close {
+    color: #eee;
+    text-shadow: none;
+    opacity: 0.8;
+}
+body.dark-theme .close:hover {
+    opacity: 1;
+}
+
+/* Selected Well Marker Styles */
+.selected-well-wrapper {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    pointer-events: none; /* Let clicks pass through to the map/marker */
+}
+
+.selected-well-icon {
+    color: #e74c3c; /* Red */
+    font-size: 24px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    line-height: 1;
+}
+
+.selected-well-text {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+    margin-left: 2px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Dark Mode Support */
+body.dark-theme .selected-well-text {
+    background: rgba(40, 40, 40, 0.9);
+    border-color: #555;
+    color: #eee;
+}
+
+/* Queries Panel */
+.queries-panel {
+    position: absolute;
+    top: 0;
+    left: 0; /* Relative to dashboard-main */
+    width: 280px;
+    height: 100%;
+    background: white;
+    border-right: 1px solid #ddd;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    z-index: 90; /* Below sidebar if sidebar is z-index 100? No, sidebar is 100. */
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease, left 0.1s ease-out;
+    pointer-events: none; /* Prevent interaction when hidden */
+    opacity: 0; /* Hide visually when closed */
+}
+
+.queries-panel.open {
+    transform: translateX(0);
+    pointer-events: auto;
+    opacity: 1;
+}
+
+
+
+.queries-panel-header {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.queries-header-title {
+    font-weight: 600;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.queries-count {
+    background: #f0f0f0;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #666;
+}
+
+.queries-header-actions {
+    display: flex;
+    gap: 10px;
+    color: #666;
+}
+
+.queries-search-bar {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.queries-search-bar input {
+    width: 100%;
+    padding: 6px 10px 6px 30px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+}
+
+.queries-search-bar .search-icon {
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #999;
+}
+
+.queries-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 0;
+}
+
+.query-item {
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.query-item:hover {
+    background: #f5f9ff;
+}
+
+.query-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.query-icon {
+    color: #777;
+    font-size: 18px;
+}
+
+.query-name {
+    font-size: 13px;
+    color: #333;
+}
+
+.query-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-green {
+    background-color: #28a745;
+}
+
+.more-icon {
+    color: #999;
+    font-size: 16px;
+    display: none;
+}
+
+.query-item:hover .more-icon {
+    display: block;
+}
+
+/* Query Editor Window (Attached to Queries Panel) */
+.query-editor-window {
+    position: absolute;
+    top: 0;
+    left: 280px; /* Attached to Queries Panel (width 280px) */
+    width: 600px;
+    height: 100%; /* Full height */
+    background: white;
+    border-radius: 0 4px 4px 0;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+    border-left: none; /* Merge with Queries panel */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 95;
+}
+
+.query-editor-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: white;
+}
+
+.query-editor-header {
+    height: 40px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-right: 10px;
+    background: #f8f9fa;
+}
+
+.editor-tab {
+    padding: 0 20px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    border-right: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.editor-tab.active {
+    background: white;
+    color: #007bff;
+    border-top: 2px solid #007bff;
+}
+
+.query-editor-body {
+    flex: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+}
+
+.line-numbers {
+    width: 40px;
+    background: #f0f0f0;
+    border-right: 1px solid #ddd;
+    padding: 10px 0;
+    text-align: right;
+    color: #999;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    user-select: none;
+}
+
+.line-numbers div {
+    padding-right: 8px;
+}
+
+.query-textarea {
+    flex: 1;
+    border: none;
+    padding: 10px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    color: #333;
+}
+
+.query-editor-footer {
+    height: 45px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    background: #fff;
+}
+
+.footer-tabs {
+    display: flex;
+    gap: 20px;
+}
+
+.footer-tab {
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    padding: 12px 0;
+    position: relative;
+}
+
+.footer-tab.active {
+    color: #333;
+    font-weight: 600;
+}
+
+.footer-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #007bff;
+}
+
+.footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-test {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-test:hover {
+    background: #f8f9fa;
+}
+
+.shortcut {
+    font-size: 11px;
+    color: #999;
+    background: #eee;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+
+/* Query Results Container */
+.query-results-container {
+    flex: 1;
+    background: #fff;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid #f0f0f0;
+}
+
+.query-results-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    color: #777;
+}
+
+.empty-state-icon {
+    width: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    opacity: 0.3;
+    margin-bottom: 5px;
+}
+
+.skeleton-line {
+    height: 6px;
+    background: #999;
+    border-radius: 3px;
+}
+
+.query-results-empty-state p {
+    font-size: 13px;
+    margin: 0;
+    color: #6c757d;
+}
+
+.btn-test-primary {
+    background: white;
+    color: #1a73e8;
+    border: 1px solid #1a73e8;
+    padding: 6px 20px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.btn-test-primary:hover {
+    background: #f0f7ff;
+}
+
+/* Adjust Editor Body to share space */
+.query-editor-body {
+    height: 300px; /* Fixed height for editor part */
+    flex: none; /* Don't grow/shrink */
+    border-bottom: 1px solid #ddd;
+}
+
+/* Adjust Footer (now Results Header) */
+.query-editor-footer {
+    border-top: none; /* Remove top border as body has bottom border */
+    border-bottom: 1px solid #eee;
+    background: #fff;
+}
+
+/* Editor Resizer */
+.editor-resizer {
+    height: 8px; /* Increased hit area */
+    background: #f8f9fa;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    cursor: row-resize;
+    flex: none;
+    transition: background 0.2s;
+    position: relative;
+    z-index: 10; /* Ensure it's above other elements */
+}
+
+.editor-resizer::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 2px;
+    background: #ccc;
+    border-radius: 1px;
+}
+
+.editor-resizer:hover, .editor-resizer.resizing {
+    background: #e0e0e0;
+}
+
+.editor-resizer:hover::after, .editor-resizer.resizing::after {
+    background: #999;
+}
+
+/* Remove bottom border from editor body as resizer acts as border */
+.query-editor-body {
+    border-bottom: none;
+}
+
+/* Footer Layout Updates */
+.query-editor-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    height: 45px;
+}
+
+.footer-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    height: 100%;
+}
+
+.footer-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+}
+
+.footer-tabs {
+    display: flex;
+    gap: 20px;
+    height: 100%;
+}
+
+.footer-tab {
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    position: relative;
+    height: 100%;
+}
+
+.footer-tab.active {
+    color: #007bff; /* Blue text for active tab */
+    font-weight: 500;
+}
+
+.footer-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #007bff;
+}
+
+/* Syntax Highlighting Styles */
+.editor-container {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background-color: #fff; /* Or dark mode background */
+}
+
+.editor-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 10px;
+    border: none;
+    box-sizing: border-box;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    background-color: transparent;
+    color: #333; /* Default text color */
+    pointer-events: none;
+    white-space: pre; /* No wrap */
+    overflow: hidden;
+    z-index: 1;
+}
+
+.query-textarea {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 10px;
+    border: none;
+    box-sizing: border-box;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    background: transparent;
+    color: transparent; /* Hide text but keep caret */
+    caret-color: #333;
+    outline: none;
+    resize: none;
+    z-index: 2;
+    white-space: pre; /* No wrap */
+    overflow: auto; /* Scrollbars if needed */
+}
+
+/* Dark Mode Support for Editor */
+body.dark-theme .editor-container {
+    background-color: #1e1e1e;
+}
+
+body.dark-theme .editor-backdrop {
+    color: #d4d4d4;
+}
+
+body.dark-theme .query-textarea {
+    color: transparent;
+    caret-color: #d4d4d4;
+}
+
+/* Dark Theme Overrides for Query Editor */
+body.dark-theme .query-editor-window {
+    background: #1e1e1e;
+    border-color: #333;
+}
+
+body.dark-theme .query-editor-content {
+    background: #1e1e1e;
+}
+
+body.dark-theme .query-editor-header {
+    background: #252526;
+    border-bottom-color: #333;
+}
+
+body.dark-theme .editor-tab {
+    color: #ccc;
+    border-right-color: #333;
+}
+
+body.dark-theme .editor-tab.active {
+    background: #1e1e1e;
+    color: #4daafc;
+    border-top-color: #4daafc;
+}
+
+body.dark-theme .line-numbers {
+    background: #252526;
+    border-right-color: #333;
+    color: #666;
+}
+
+body.dark-theme .query-textarea {
+    color: #d4d4d4;
+    caret-color: white;
+}
+
+body.dark-theme .query-editor-footer {
+    background: #252526;
+    border-bottom-color: #333;
+}
+
+body.dark-theme .footer-tab {
+    color: #999;
+}
+
+body.dark-theme .footer-tab.active {
+    color: #fff;
+}
+
+body.dark-theme .btn-test {
+    background: #333;
+    border-color: #444;
+    color: #ccc;
+}
+
+body.dark-theme .btn-test:hover {
+    background: #444;
+}
+
+body.dark-theme .shortcut {
+    background: #444;
+    color: #ccc;
+}
+
+body.dark-theme .query-results-container {
+    background: #1e1e1e;
+    border-top-color: #333;
+}
+
+body.dark-theme .query-results-empty-state {
+    color: #999;
+}
+
+body.dark-theme .skeleton-line {
+    background: #444;
+}
+
+body.dark-theme .query-results-empty-state p {
+    color: #999;
+}
+
+body.dark-theme .btn-test-primary {
+    background: #1e1e1e;
+    color: #4daafc;
+    border-color: #4daafc;
+}
+
+body.dark-theme .btn-test-primary:hover {
+    background: #262626;
+}
+
+body.dark-theme .editor-resizer {
+    background: #252526;
+    border-top-color: #333;
+    border-bottom-color: #333;
+}
+
+body.dark-theme .editor-resizer:hover, body.dark-theme .editor-resizer.resizing {
+    background: #333;
+}
+
+body.dark-theme .footer-label {
+    color: #ccc;
+}
+
+body.dark-theme .editor-backdrop {
+    color: #d4d4d4;
+}
+
+body.dark-theme .btn-save-query {
+    color: #ccc !important;
+}
+
+body.dark-theme .tab-icon {
+    color: #ccc !important;
+}
+
+body.dark-theme .tab-close {
+    color: #ccc !important;
+}
+
+/* Dark Theme for Queries Panel Sidebar */
+body.dark-theme .queries-panel {
+    background-color: #1e1e1e;
+    border-right-color: #333;
+}
+
+body.dark-theme .queries-panel-header {
+    border-bottom-color: #333;
+    color: #eee;
+}
+
+body.dark-theme .queries-header-actions .action-icon {
+    color: #aaa;
+}
+
+body.dark-theme .queries-header-actions .action-icon:hover {
+    color: #fff;
+}
+
+body.dark-theme .queries-search-bar {
+    border-bottom-color: #333;
+}
+
+body.dark-theme .queries-search-bar input {
+    background-color: #2c2c2c;
+    border-color: #444;
+    color: #eee;
+}
+
+body.dark-theme .queries-search-bar .search-icon {
+    color: #777;
+}
+
+body.dark-theme .no-queries-placeholder {
+    color: #aaa !important;
+}
+
+body.dark-theme .no-queries-placeholder i {
+    opacity: 0.5 !important;
+    color: #ccc;
+}
+
+body.dark-theme #create-query-btn-empty {
+    border-color: #4a90e2 !important;
+    color: #4a90e2 !important;
+    background-color: transparent !important;
+}
+
+body.dark-theme #create-query-btn-empty:hover {
+    background-color: rgba(74, 144, 226, 0.1) !important;
+}
+
+
