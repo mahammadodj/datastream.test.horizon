@@ -219,7 +219,7 @@ const DatasetLineage = {
         const findHeaderRow = (data) => {
             const limit = Math.min(data.length, 20);
             let maxNonEmpty = -1;
-            let headerIndex = 0;
+            let bestIndex = 0;
 
             for (let i = 0; i < limit; i++) {
                 const row = data[i];
@@ -233,10 +233,49 @@ const DatasetLineage = {
 
                 if (nonEmptyCount > maxNonEmpty) {
                     maxNonEmpty = nonEmptyCount;
-                    headerIndex = i;
+                    bestIndex = i;
                 }
             }
-            return headerIndex;
+
+            // Heuristic: If the first row has almost as many columns as the best row,
+            // and the best row looks like data (mostly numbers) while the first row
+            // looks like headers (mostly strings), prefer the first row.
+            if (bestIndex > 0 && data[0] && Array.isArray(data[0])) {
+                const row0 = data[0];
+                const count0 = row0.filter(c => c !== null && c !== undefined && String(c).trim() !== '').length;
+                
+                if (count0 >= maxNonEmpty - 1 && count0 > 0) {
+                    const rowBest = data[bestIndex];
+                    
+                    let bestNumbers = 0;
+                    let bestStrings = 0;
+                    rowBest.forEach(c => {
+                        if (c === null || c === undefined) return;
+                        if (typeof c === 'number') bestNumbers++;
+                        else if (typeof c === 'string' && c.trim() !== '') {
+                            if (!isNaN(parseFloat(c)) && isFinite(c)) bestNumbers++;
+                            else bestStrings++;
+                        }
+                    });
+
+                    let row0Numbers = 0;
+                    let row0Strings = 0;
+                    row0.forEach(c => {
+                        if (c === null || c === undefined) return;
+                        if (typeof c === 'number') row0Numbers++;
+                        else if (typeof c === 'string' && c.trim() !== '') {
+                            if (!isNaN(parseFloat(c)) && isFinite(c)) row0Numbers++;
+                            else row0Strings++;
+                        }
+                    });
+
+                    if (bestNumbers > bestStrings && row0Strings >= row0Numbers) {
+                        return 0;
+                    }
+                }
+            }
+
+            return bestIndex;
         };
 
         const inferType = (values) => {
@@ -876,11 +915,24 @@ const DatasetLineage = {
 
         // Syntax Highlighting
         const backdrop = ref(null);
+        const lineNumbersRef = ref(null);
+
+        const lineNumbersHtml = computed(() => {
+            const contentLines = sqlQuery.value.split('\n').length;
+            // Calculate visible lines based on editor height (minus toolbar 40px) and line height (~21px)
+            const visibleLines = Math.max(1, Math.floor((queryBarHeight.value - 40) / 21));
+            // Show at least content lines, or enough to fill the view (minimum 20)
+            const totalLines = Math.max(contentLines, visibleLines, 20);
+            return Array.from({ length: totalLines }, (_, i) => i + 1).join('<br>');
+        });
         
         const syncScroll = (event) => {
             if (backdrop.value) {
                 backdrop.value.scrollTop = event.target.scrollTop;
                 backdrop.value.scrollLeft = event.target.scrollLeft;
+            }
+            if (lineNumbersRef.value) {
+                lineNumbersRef.value.scrollTop = event.target.scrollTop;
             }
         };
 
@@ -1230,6 +1282,8 @@ const DatasetLineage = {
             highlightedSql,
             backdrop,
             syncScroll,
+            lineNumbersRef,
+            lineNumbersHtml,
             suggestions,
             showSuggestions,
             activeSuggestionIndex,
@@ -1244,14 +1298,14 @@ const DatasetLineage = {
     },
     template: `
         <div class="dataset-lineage-container" 
-             style="position: relative; width: 100%; height: 100%; background-color: #f4f4f4; overflow: hidden;"
+             style="position: relative; width: 100%; height: 100%; overflow: hidden;"
              @contextmenu.prevent="showContextMenu"
              @dragover.prevent="handleDragOver"
              @dragleave.prevent="handleDragLeave"
              @drop.prevent="handleDrop">
             
             <div v-if="isDragOver" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(106, 17, 203, 0.1); z-index: 50; pointer-events: none; display: flex; justify-content: center; align-items: center; border: 4px dashed #6a11cb;">
-                <div style="background: white; padding: 20px 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 24px; color: #6a11cb; font-weight: bold;">
+                <div class="drop-message-box" style="padding: 20px 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 24px; color: #6a11cb; font-weight: bold;">
                     Drop file to import
                 </div>
             </div>
@@ -1271,7 +1325,7 @@ const DatasetLineage = {
             <div v-if="!isSidebarOpen" 
                  @click="toggleSidebar"
                  class="collapsed-sidebar"
-                 style="position: absolute; right: 0; top: 0; width: 32px; height: 100%; background: white; border-left: 1px solid #ddd; z-index: 90; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
+                 style="position: absolute; right: 0; top: 0; width: 32px; height: 100%; border-left: 1px solid #ddd; z-index: 90; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
                 <div style="transform: rotate(-90deg); white-space: nowrap; font-weight: 600; color: #555; letter-spacing: 1px; font-size: 12px;">
                     DATA RELATIONSHIPS
                 </div>
@@ -1280,11 +1334,11 @@ const DatasetLineage = {
             <!-- Relationships Sidebar -->
             <div v-if="isSidebarOpen" class="relationships-sidebar" 
                  :style="{ width: sidebarWidth + 'px', paddingBottom: isQueryBarOpen ? queryBarHeight + 'px' : '40px' }"
-                 style="position: absolute; right: 0; top: 0; height: 100%; background: white; border-left: 1px solid #ddd; box-shadow: -2px 0 5px rgba(0,0,0,0.05); z-index: 90; display: flex; flex-direction: column; transition: padding-bottom 0.1s;">
+                 style="position: absolute; right: 0; top: 0; height: 100%; border-left: 1px solid #ddd; box-shadow: -2px 0 5px rgba(0,0,0,0.05); z-index: 90; display: flex; flex-direction: column; transition: padding-bottom 0.1s;">
                 
                 <div class="sidebar-resizer" @mousedown="startResizeSidebar"></div>
 
-                <div style="padding: 15px; border-bottom: 1px solid #eee; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
+                <div class="sidebar-header" style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="margin: 0; font-size: 16px; color: #333;">Data Relationships</h3>
                     <button @click="toggleSidebar" class="close-btn" style="width: 24px; height: 24px; font-size: 16px; background: transparent;">&times;</button>
                 </div>
@@ -1328,11 +1382,11 @@ const DatasetLineage = {
                 </div>
             </div>
 
-            <div v-if="isLoading" class="loading-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 200; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+            <div v-if="isLoading" class="loading-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 200; display: flex; justify-content: center; align-items: center; flex-direction: column;">
                 <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                <div style="margin-top: 15px; font-weight: bold; color: #555; font-size: 16px;">{{ loadingMessage }}</div>
+                <div class="loading-text" style="margin-top: 15px; font-weight: bold; font-size: 16px;">{{ loadingMessage }}</div>
             </div>
 
             <!-- Preview Modal -->
@@ -1537,39 +1591,48 @@ const DatasetLineage = {
                 </div>
                 <div v-show="isQueryBarOpen" style="flex-grow: 1; display: flex; height: calc(100% - 40px); overflow: hidden;">
                     <!-- Left Side: Editor -->
-                    <div class="sql-editor-container" :style="{ width: editorWidth + '%', position: 'relative' }">
-                        <!-- Backdrop (Highlighter) -->
-                        <pre aria-hidden="true" 
-                             class="sql-backdrop"
-                             style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: none; box-sizing: border-box; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.5; pointer-events: none; white-space: pre-wrap; overflow: hidden;"
-                             v-html="highlightedSql"
-                             ref="backdrop"
-                        ></pre>
-                        
-                        <!-- Textarea (Input) -->
-                        <textarea 
-                            ref="textareaRef"
-                            v-model="sqlQuery" 
-                            @scroll="syncScroll"
-                            @input="updateSuggestions"
-                            @keydown="handleKeyDown"
-                            @blur="setTimeout(() => showSuggestions = false, 200)"
-                            class="sql-editor-textarea"
-                            placeholder="-- Write your SQL query here...
-SELECT * FROM [TableName]" 
-                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: none; box-sizing: border-box; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.5; outline: none; resize: none;"
-                            spellcheck="false"
-                        ></textarea>
+                    <div class="sql-editor-wrapper" :style="{ width: editorWidth + '%', display: 'flex', height: '100%', position: 'relative' }">
+                        <!-- Line Numbers -->
+                        <div class="line-numbers" 
+                             ref="lineNumbersRef"
+                             style="width: 40px; background: #f0f0f0; border-right: 1px solid #ddd; text-align: right; padding: 10px 5px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.5; color: #999; overflow: hidden; user-select: none;"
+                             v-html="lineNumbersHtml">
+                        </div>
 
-                        <!-- Suggestions Box -->
-                        <div v-if="showSuggestions" 
-                             class="suggestions-box" 
-                             :style="{ top: suggestionPosition.top + 'px', left: suggestionPosition.left + 'px' }">
-                            <div v-for="(s, i) in suggestions" :key="s" 
-                                 class="suggestion-item"
-                                 :class="{ active: i === activeSuggestionIndex }"
-                                 @mousedown.prevent="insertSuggestion(s)">
-                                 {{ s }}
+                        <div class="sql-editor-container" style="flex-grow: 1; position: relative; height: 100%;">
+                            <!-- Backdrop (Highlighter) -->
+                            <pre aria-hidden="true" 
+                                 class="sql-backdrop"
+                                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: none; box-sizing: border-box; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.5; pointer-events: none; white-space: pre-wrap; overflow: hidden;"
+                                 v-html="highlightedSql"
+                                 ref="backdrop"
+                            ></pre>
+                            
+                            <!-- Textarea (Input) -->
+                            <textarea 
+                                ref="textareaRef"
+                                v-model="sqlQuery" 
+                                @scroll="syncScroll"
+                                @input="updateSuggestions"
+                                @keydown="handleKeyDown"
+                                @blur="setTimeout(() => showSuggestions = false, 200)"
+                                class="sql-editor-textarea"
+                                placeholder="-- Write your SQL query here...
+SELECT * FROM [TableName]" 
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: none; box-sizing: border-box; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: 1.5; outline: none; resize: none;"
+                                spellcheck="false"
+                            ></textarea>
+
+                            <!-- Suggestions Box -->
+                            <div v-if="showSuggestions" 
+                                 class="suggestions-box" 
+                                 :style="{ top: suggestionPosition.top + 'px', left: suggestionPosition.left + 'px' }">
+                                <div v-for="(s, i) in suggestions" :key="s" 
+                                     class="suggestion-item"
+                                     :class="{ active: i === activeSuggestionIndex }"
+                                     @mousedown.prevent="insertSuggestion(s)">
+                                     {{ s }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2355,6 +2418,199 @@ style.textContent = `
     body.dark-theme .suggestion-item:hover, body.dark-theme .suggestion-item.active {
         background-color: #094771;
         color: white;
+    }
+
+    /* Default Styles for elements with removed inline styles */
+    .dataset-lineage-container {
+        background-color: #f4f4f4;
+    }
+    .relationships-sidebar, .collapsed-sidebar {
+        background: white;
+    }
+    .sidebar-header {
+        background: #f8f9fa;
+    }
+
+    /* Comprehensive Dark Theme Overrides */
+    body.dark-theme .dataset-lineage-container {
+        background-color: #1e1e1e;
+    }
+    body.dark-theme .relationships-sidebar, 
+    body.dark-theme .collapsed-sidebar {
+        background: #252526;
+        border-left: 1px solid #333 !important;
+    }
+    body.dark-theme .sidebar-header {
+        background: #2d2d2d;
+        border-bottom: 1px solid #333 !important;
+    }
+    body.dark-theme .sidebar-header h3 {
+        color: #e0e0e0 !important;
+    }
+    body.dark-theme .close-btn {
+        color: #e0e0e0;
+    }
+    body.dark-theme .table-node {
+        background: #252526;
+        border-color: #444;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    body.dark-theme .table-header {
+        background: linear-gradient(to bottom, #333, #2d2d2d);
+        border-bottom: 1px solid #444;
+        color: #e0e0e0;
+    }
+    body.dark-theme .table-title {
+        color: #e0e0e0;
+    }
+    body.dark-theme .table-column {
+        color: #d4d4d4;
+        border-bottom: 1px solid #333;
+    }
+    body.dark-theme .table-column:hover {
+        background-color: #2a2d2e;
+    }
+    body.dark-theme .col-type-select {
+        background: #333;
+        border: 1px solid #555;
+        color: #d4d4d4;
+    }
+    body.dark-theme .col-type-select:hover {
+        background: #444;
+    }
+    body.dark-theme .line-numbers {
+        background: #252526 !important;
+        border-right: 1px solid #333 !important;
+        color: #858585 !important;
+    }
+    body.dark-theme .context-menu {
+        background: #252526;
+        border: 1px solid #444;
+        color: #d4d4d4;
+    }
+    body.dark-theme .context-menu-item {
+        color: #d4d4d4;
+    }
+    body.dark-theme .context-menu-item:hover {
+        background-color: #094771;
+        color: white;
+    }
+    body.dark-theme .connection-name-input {
+        color: #a5b3ff;
+    }
+    body.dark-theme .connection-name-input:hover, 
+    body.dark-theme .connection-name-input:focus {
+        background: #333;
+        border-color: #555;
+    }
+    body.dark-theme .import-btn {
+        background: #252526;
+        border-color: #444;
+        color: #e0e0e0;
+    }
+    body.dark-theme .import-btn:hover {
+        background: #333;
+        border-color: #555;
+        color: white;
+    }
+
+    /* Modal Dark Theme */
+    body.dark-theme .preview-modal {
+        background: #1e1e1e;
+        border-color: #444;
+    }
+    body.dark-theme .preview-header {
+        background: #252526;
+        border-bottom: 1px solid #333;
+    }
+    body.dark-theme .preview-header h3 {
+        color: #e0e0e0;
+    }
+    body.dark-theme .preview-body {
+        background: #1e1e1e;
+    }
+    body.dark-theme .close-btn {
+        background: #333;
+        color: #e0e0e0;
+    }
+    body.dark-theme .close-btn:hover {
+        background: #444;
+    }
+    body.dark-theme .preview-body table th {
+        background: #2d2d2d;
+        border-bottom: 1px solid #444;
+    }
+    body.dark-theme .preview-body table td {
+        border-bottom: 1px solid #333;
+        color: #d4d4d4;
+    }
+    body.dark-theme .preview-body table tr:hover td {
+        background-color: #2a2d2e;
+    }
+    body.dark-theme .cell-input {
+        color: #d4d4d4;
+    }
+    body.dark-theme .cell-input:focus {
+        background: #333;
+        border-color: #555;
+    }
+    body.dark-theme .header-input {
+        color: #e0e0e0;
+    }
+    body.dark-theme .header-input:hover, 
+    body.dark-theme .header-input:focus {
+        background: #333;
+        border-color: #555;
+    }
+    body.dark-theme .header-type-select {
+        background: #333;
+        border-color: #555;
+        color: #d4d4d4;
+    }
+    body.dark-theme .preview-footer {
+        background: #252526;
+        border-top: 1px solid #333;
+    }
+    body.dark-theme .btn-secondary-custom {
+        background: #333;
+        border-color: #555;
+        color: #e0e0e0;
+    }
+    body.dark-theme .btn-secondary-custom:hover {
+        background: #444;
+    }
+    body.dark-theme .add-row-container {
+        background: #1e1e1e;
+        border-top: 1px solid #333;
+    }
+    body.dark-theme .btn-add-row {
+        border-color: #444;
+        color: #aaa;
+    }
+    body.dark-theme .btn-add-row:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+
+    /* Drop Message & Loading Overlay Dark Theme */
+    .drop-message-box {
+        background: white;
+    }
+    body.dark-theme .drop-message-box {
+        background: #252526;
+        color: #a5b3ff !important;
+    }
+    .loading-overlay {
+        background: rgba(255,255,255,0.8);
+    }
+    .loading-text {
+        color: #555;
+    }
+    body.dark-theme .loading-overlay {
+        background: rgba(30, 30, 30, 0.8);
+    }
+    body.dark-theme .loading-text {
+        color: #e0e0e0;
     }
 `;
 document.head.appendChild(style);

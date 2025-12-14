@@ -2570,7 +2570,38 @@ function updateDashboardEmptyState() {
     }
 }
 
+function getNextWidgetIndex(baseName) {
+    let maxIndex = 0;
+    const widgetTitles = [];
+    
+    // Get titles from charts
+    document.querySelectorAll('.dashboard-chart-header span').forEach(el => widgetTitles.push(el.textContent));
+    
+    // Get titles from layout containers
+    document.querySelectorAll('.dashboard-layout-container').forEach(container => {
+        // The header is the first child div, title is the first span in it
+        const header = container.firstElementChild;
+        if (header) {
+            const span = header.querySelector('span');
+            if (span) widgetTitles.push(span.textContent);
+        }
+    });
+
+    const regex = new RegExp(`^${baseName}_(\\d+)$`);
+    
+    widgetTitles.forEach(title => {
+        const match = title.match(regex);
+        if (match) {
+            const num = parseInt(match[1]);
+            if (num > maxIndex) maxIndex = num;
+        }
+    });
+    
+    return maxIndex + 1;
+}
+
 function createDashboardChart(type, x, y, parentElement = null) {
+    let chartInstance = null;
     const dashboard = document.getElementById('dashboard-content');
     const isDark = document.body.classList.contains('dark-theme');
     
@@ -2590,6 +2621,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
         // Flexbox child style
         Object.assign(container.style, {
             position: 'relative',
+            zIndex: '1',
             flex: '0 0 auto', // Don't grow/shrink automatically to allow manual resizing
             width: '300px',
             height: '300px',
@@ -2608,6 +2640,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
         // Absolute positioning style (default)
         Object.assign(container.style, {
             position: 'absolute',
+            zIndex: '1',
             left: `${x}px`,
             top: `${y}px`,
             width: '400px',
@@ -2639,7 +2672,13 @@ function createDashboardChart(type, x, y, parentElement = null) {
     });
     
     const title = document.createElement('span');
-    title.textContent = `${type.charAt(0).toUpperCase() + type.slice(1)} Chart`;
+    
+    // Generate unique name
+    const chartTypes = ['bar', 'line', 'pie', 'scatter', 'area', 'bubble', 'radar', 'gantt', 'box', 'table'];
+    const baseName = chartTypes.includes(type) ? `${type}_chart` : type;
+    const index = getNextWidgetIndex(baseName);
+    title.textContent = `${baseName}_${index}`;
+
     Object.assign(title.style, {
         fontWeight: 'bold',
         fontSize: '12px',
@@ -2775,10 +2814,11 @@ function createDashboardChart(type, x, y, parentElement = null) {
     closeBtn.onclick = () => {
         container.remove();
         updateDashboardEmptyState();
+        if (window.refreshWidgetsPanel) window.refreshWidgetsPanel();
     };
     
-    // Add Settings Button for Scatter/Line/Bar/Pie Plot
-    if (type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') {
+    // Add Settings Button for Scatter/Line/Bar/Pie/Area Plot
+    if (type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie' || type === 'area') {
         const settingsBtn = document.createElement('span');
         settingsBtn.innerHTML = '⚙️';
         settingsBtn.style.cursor = 'pointer';
@@ -3462,6 +3502,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
         
         if (!parentElement) addDragLogic(header, container);
         updateDashboardControlsVisibility();
+        if (window.refreshWidgetsPanel) window.refreshWidgetsPanel();
         return;
     }
 
@@ -3506,6 +3547,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
         // Add drag logic only if not in container
         if (!parentElement) addDragLogic(header, container);
         updateDashboardControlsVisibility();
+        if (window.refreshWidgetsPanel) window.refreshWidgetsPanel();
         return;
     }
 
@@ -3602,12 +3644,296 @@ function createDashboardChart(type, x, y, parentElement = null) {
 
         if (!parentElement) addDragLogic(header, container);
         updateDashboardControlsVisibility();
+        if (window.refreshWidgetsPanel) window.refreshWidgetsPanel();
+        return;
+    }
+
+    // Handle UI Controls
+    const uiControls = ['button', 'checkbox', 'input', 'slider', 'date', 'dropdown', 'textarea', 'image', 'text', 'divider', 'spacer'];
+    if (uiControls.includes(type)) {
+        // Content Wrapper
+        const wrapper = document.createElement('div');
+        Object.assign(wrapper.style, {
+            padding: '15px',
+            backgroundColor: isDark ? '#2b2b2b' : 'white',
+            color: isDark ? '#eee' : '#333',
+            flex: '1',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            overflow: 'auto'
+        });
+
+        if (type === 'button') {
+            const btn = document.createElement('button');
+            btn.textContent = 'Button';
+            Object.assign(btn.style, {
+                padding: '8px 16px',
+                backgroundColor: '#0075ff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+            });
+            wrapper.appendChild(btn);
+        } else if (type === 'checkbox') {
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.id = `cb_${Date.now()}`;
+            const lbl = document.createElement('label');
+            lbl.htmlFor = cb.id;
+            lbl.textContent = 'Checkbox Label';
+            lbl.style.marginLeft = '8px';
+            div.appendChild(cb);
+            div.appendChild(lbl);
+            wrapper.appendChild(div);
+        } else if (type === 'input') {
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.placeholder = 'Enter text...';
+            Object.assign(inp.style, {
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                width: '100%',
+                backgroundColor: isDark ? '#444' : 'white',
+                color: isDark ? '#eee' : '#333'
+            });
+            wrapper.appendChild(inp);
+        } else if (type === 'slider') {
+             const div = document.createElement('div');
+             div.style.width = '100%';
+             const rng = document.createElement('input');
+             rng.type = 'range';
+             rng.style.width = '100%';
+             div.appendChild(rng);
+             wrapper.appendChild(div);
+        } else if (type === 'date') {
+            const date = document.createElement('input');
+            date.type = 'date';
+            Object.assign(date.style, {
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: isDark ? '#444' : 'white',
+                color: isDark ? '#eee' : '#333'
+            });
+            wrapper.appendChild(date);
+        } else if (type === 'dropdown') {
+            const sel = document.createElement('select');
+            Object.assign(sel.style, {
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                width: '100%',
+                backgroundColor: isDark ? '#444' : 'white',
+                color: isDark ? '#eee' : '#333'
+            });
+            ['Option 1', 'Option 2', 'Option 3'].forEach(opt => {
+                const o = document.createElement('option');
+                o.text = opt;
+                sel.add(o);
+            });
+            wrapper.appendChild(sel);
+        } else if (type === 'textarea') {
+            const txt = document.createElement('textarea');
+            Object.assign(txt.style, {
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                width: '100%',
+                height: '100px',
+                resize: 'none',
+                backgroundColor: isDark ? '#444' : 'white',
+                color: isDark ? '#eee' : '#333'
+            });
+            wrapper.appendChild(txt);
+        } else if (type === 'image') {
+            const img = document.createElement('div');
+            img.textContent = 'Image Placeholder';
+            Object.assign(img.style, {
+                width: '100%',
+                height: '150px',
+                backgroundColor: isDark ? '#444' : '#eee',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#888',
+                border: '1px dashed #ccc'
+            });
+            wrapper.appendChild(img);
+        } else if (type === 'text') {
+            const p = document.createElement('p');
+            p.textContent = 'Sample Text Content';
+            p.contentEditable = true;
+            wrapper.appendChild(p);
+        } else if (type === 'divider') {
+            const hr = document.createElement('hr');
+            hr.style.width = '100%';
+            hr.style.border = '0';
+            hr.style.borderTop = '1px solid #ccc';
+            wrapper.appendChild(hr);
+            container.style.height = 'auto'; 
+        } else if (type === 'spacer') {
+            wrapper.style.height = '50px';
+        }
+
+        canvasContainer.appendChild(wrapper);
+        container.appendChild(canvasContainer);
+        
+        if (parentElement) parentElement.appendChild(container);
+        else dashboard.appendChild(container);
+        
+        if (!parentElement) addDragLogic(header, container);
+        updateDashboardControlsVisibility();
+        if (window.refreshWidgetsPanel) window.refreshWidgetsPanel();
         return;
     }
 
     const canvas = document.createElement('canvas');
     // canvasContainer.appendChild(canvas); // Moved to initChart
     container.appendChild(canvasContainer);
+
+    // Add Toolbar for Scatter/Line/Bubble/Area Plots
+    if (type === 'scatter' || type === 'line' || type === 'bubble' || type === 'area') {
+        // Toggle Button
+        const toggleBtn = document.createElement('div');
+        toggleBtn.innerHTML = '<i class="material-icons" style="font-size: 18px;">build</i>';
+        Object.assign(toggleBtn.style, {
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            zIndex: 6,
+            cursor: 'pointer',
+            padding: '4px',
+            borderRadius: '3px',
+            backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)',
+            color: isDark ? '#eee' : '#333',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        });
+        toggleBtn.title = "Chart Tools";
+
+        const toolbar = document.createElement('div');
+        Object.assign(toolbar.style, {
+            position: 'absolute',
+            top: '40px',
+            right: '10px',
+            display: 'none',
+            flexDirection: 'column',
+            gap: '5px',
+            zIndex: 5,
+            backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)',
+            padding: '5px',
+            borderRadius: '4px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+        });
+
+        toggleBtn.onclick = (e) => {
+            e.stopPropagation();
+            toolbar.style.display = toolbar.style.display === 'none' ? 'flex' : 'none';
+        };
+
+        const createBtn = (icon, title, onClick) => {
+            const btn = document.createElement('div');
+            btn.innerHTML = `<i class="material-icons" style="font-size: 18px;">${icon}</i>`;
+            Object.assign(btn.style, {
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '3px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isDark ? '#eee' : '#333'
+            });
+            btn.title = title;
+            btn.onmouseover = () => btn.style.backgroundColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+            btn.onmouseout = () => btn.style.backgroundColor = 'transparent';
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                if (chartInstance) onClick(chartInstance, btn);
+            };
+            return btn;
+        };
+
+        toolbar.appendChild(createBtn('add', 'Zoom In', (chart) => {
+            chart.zoom(1.1);
+        }));
+
+        toolbar.appendChild(createBtn('remove', 'Zoom Out', (chart) => {
+            chart.zoom(0.9);
+        }));
+
+        toolbar.appendChild(createBtn('zoom_out_map', 'Reset Zoom', (chart) => {
+            chart.resetZoom();
+        }));
+
+        // Pan/Zoom Mode Toggle
+        let isPanMode = true; // Default to Pan
+        let panBtn, zoomBtn;
+        
+        const updateMode = (chart) => {
+            if (!chart || !chart.options || !chart.options.plugins || !chart.options.plugins.zoom) return;
+            
+            if (isPanMode) {
+                panBtn.style.color = '#0075ff';
+                zoomBtn.style.color = isDark ? '#eee' : '#333';
+                
+                // Enable Pan
+                chart.options.plugins.zoom.pan.enabled = true;
+                
+                // Disable Drag - Explicitly set to object with enabled: false
+                if (chart.options.plugins.zoom.zoom) {
+                    chart.options.plugins.zoom.zoom.drag = { enabled: false };
+                }
+            } else {
+                panBtn.style.color = isDark ? '#eee' : '#333';
+                zoomBtn.style.color = '#0075ff';
+                
+                // Disable Pan
+                chart.options.plugins.zoom.pan.enabled = false;
+                
+                // Enable Drag
+                if (chart.options.plugins.zoom.zoom) {
+                    chart.options.plugins.zoom.zoom.drag = {
+                        enabled: true,
+                        backgroundColor: 'rgba(0, 117, 255, 0.2)',
+                        borderColor: 'rgba(0, 117, 255, 1)',
+                        borderWidth: 1,
+                        threshold: 0
+                    };
+                    chart.options.plugins.zoom.zoom.mode = 'xy';
+                }
+            }
+            chart.update();
+        };
+
+        panBtn = createBtn('pan_tool', 'Pan Mode', (chart) => {
+            isPanMode = true;
+            updateMode(chart);
+        });
+        
+        zoomBtn = createBtn('crop_free', 'Box Zoom Mode', (chart) => {
+            isPanMode = false;
+            updateMode(chart);
+        });
+
+        // Initial state styling
+        panBtn.style.color = '#0075ff';
+
+        toolbar.appendChild(panBtn);
+        toolbar.appendChild(zoomBtn);
+
+        canvasContainer.appendChild(toggleBtn);
+        canvasContainer.appendChild(toolbar);
+    }
+
     if (parentElement) parentElement.appendChild(container);
     else dashboard.appendChild(container);
 
@@ -3744,13 +4070,18 @@ function createDashboardChart(type, x, y, parentElement = null) {
         };
 
         const columns = table.columns.map(c => c.name);
+        const numCols = table.columns.filter(c => c.type === 'int' || c.type === 'decimal').map(c => c.name);
         const isPie = type === 'pie' || type === 'doughnut';
+        const isBar = type === 'bar';
         
-        const xLabel = isPie ? "Category/Label Column:" : "X Axis (Numeric):";
+        const xLabel = isPie ? "Category/Label Column:" : (isBar ? "Category/X Axis:" : "X Axis (Numeric):");
         const yLabel = isPie ? "Value Column:" : "Y Axis (Numeric):";
 
-        const xSelect = createSelect(xLabel, columns);
-        const ySelect = createSelect(yLabel, columns);
+        const xOpts = (isPie || isBar) ? columns : numCols;
+        const yOpts = numCols;
+
+        const xSelect = createSelect(xLabel, xOpts);
+        const ySelect = createSelect(yLabel, yOpts);
         
         let colorSelect = null;
         if (!isPie) {
@@ -3758,7 +4089,6 @@ function createDashboardChart(type, x, y, parentElement = null) {
         }
 
         // Try to auto-select reasonable defaults
-        const numCols = table.columns.filter(c => c.type === 'int' || c.type === 'decimal').map(c => c.name);
         const strCols = table.columns.filter(c => c.type === 'string').map(c => c.name);
 
         if (isPie) {
@@ -3808,7 +4138,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
         if (!canvas.parentNode) canvasContainer.appendChild(canvas);
 
     // Configure Chart Data based on Type
-    let chartType = type;
+    let chartType = type === 'area' ? 'line' : type;
     let chartData = {};
     let chartOptions = {
         responsive: true,
@@ -3821,11 +4151,13 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 zoom: {
                     wheel: { enabled: true },
                     pinch: { enabled: true },
+                    drag: { enabled: false },
                     mode: 'xy'
                 },
                 pan: {
                     enabled: true,
-                    mode: 'xy'
+                    mode: 'xy',
+                    overScaleMode: 'xy'
                 }
             },
             tooltip: {
@@ -3845,7 +4177,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
         }
     };
 
-    if ((type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') && !sourceTable) {
+    if ((type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie' || type === 'area') && !sourceTable) {
         const isScatter = type === 'scatter';
         const isPie = type === 'pie';
         
@@ -3866,6 +4198,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
         if (type === 'scatter') label = 'Sample Scatter';
         if (type === 'bar') label = 'Sample Bar';
         if (type === 'pie') label = 'Sample Pie';
+        if (type === 'area') label = 'Sample Area';
 
         chartData = {
             labels: isPie ? labels : undefined,
@@ -3877,7 +4210,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 borderWidth: 1,
                 pointRadius: 5,
                 tension: isScatter ? 0 : 0.4,
-                fill: false
+                fill: type === 'area'
             }]
         };
         
@@ -4006,8 +4339,8 @@ function createDashboardChart(type, x, y, parentElement = null) {
          const headers = sourceTable.columns.map(c => c.name);
          const rows = sourceTable.data;
          
-         if ((type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') && config) {
-             // Scatter/Line/Bar/Pie Plot Logic with Config
+         if ((type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie' || type === 'area') && config) {
+             // Scatter/Line/Bar/Pie/Area Plot Logic with Config
              const xCol = config.xAxis;
              const yCol = config.yAxis;
              const colorCol = config.colorAxis;
@@ -4053,7 +4386,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
                              borderWidth: 1,
                              pointRadius: 5,
                              tension: isScatter ? 0 : 0.4,
-                             fill: false
+                             fill: type === 'area'
                          };
                      })
                  };
@@ -4075,7 +4408,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
                          borderWidth: 1,
                          pointRadius: 5,
                          tension: isScatter ? 0 : 0.4,
-                         fill: false
+                         fill: type === 'area'
                      }]
                  };
              }
@@ -4083,7 +4416,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
              if (!isPie) {
                 chartOptions.scales = {
                     x: { 
-                        type: 'linear', 
+                        type: config.xScale || 'linear', 
                         position: 'bottom',
                         title: { 
                             display: true, 
@@ -4099,6 +4432,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
                         max: config.xMax ? parseFloat(config.xMax) : undefined
                     },
                     y: { 
+                        type: config.yScale || 'linear',
                         title: { 
                             display: true, 
                             text: config.yLabel || yCol, 
@@ -4141,7 +4475,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
     }
 
     // Initialize Chart
-    const chartInstance = new Chart(canvas, {
+    chartInstance = new Chart(canvas, {
         type: chartType,
         data: chartData,
         options: chartOptions
@@ -4247,9 +4581,31 @@ function createDashboardChart(type, x, y, parentElement = null) {
             justifyContent: 'flex-end', alignItems: 'stretch'
         });
         
-        // Close on click outside
+        // 1. Define a shared close function to clean up DOM and Listeners
+        const closeSettings = () => {
+            // Prevent errors if it's already removed
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+            }
+            // Crucial: Remove the listener so it doesn't fire next time
+            document.removeEventListener('keydown', handleEsc);
+        };
+
+        // 2. Define the Esc key handler
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                closeSettings();
+            }
+        };
+
+        // 3. Add the event listener to the document
+        document.addEventListener('keydown', handleEsc);
+
+        // 4. Update the click handler to use the shared close function
         overlay.onclick = (e) => {
-            if (e.target === overlay) document.body.removeChild(overlay);
+            if (e.target === overlay) {
+                closeSettings();
+            }
         };
 
         // Drawer Content
@@ -4365,8 +4721,8 @@ function createDashboardChart(type, x, y, parentElement = null) {
         let config = { 
             xAxis: '', yAxis: '', colorAxis: '(None)', 
             seriesNames: '[]', colors: '[]',
-            xMin: '', xMax: '', xLabel: '', xGrid: true,
-            yMin: '', yMax: '', yLabel: '', yGrid: true,
+            xMin: '', xMax: '', xLabel: '', xGrid: true, xScale: 'linear',
+            yMin: '', yMax: '', yLabel: '', yGrid: true, yScale: 'linear',
             chartTitle: ''
         };
 
@@ -4419,6 +4775,13 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 }
                 const table = window.lineageData.tables.find(t => t.id === selectedTableId);
                 const cols = table.columns.map(c => c.name);
+                const numCols = table.columns.filter(c => c.type === 'int' || c.type === 'decimal').map(c => c.name);
+
+                // Determine options based on chart type
+                const chartType = chart.config.type;
+                const isCategoricalX = chartType === 'bar' || chartType === 'pie' || chartType === 'doughnut';
+                const xOpts = isCategoricalX ? cols : numCols;
+                const yOpts = numCols;
 
                 const createSel = (label, key, opts) => {
                     const div = document.createElement('div');
@@ -4442,8 +4805,8 @@ function createDashboardChart(type, x, y, parentElement = null) {
                     return div;
                 };
 
-                tabContent.appendChild(createSel('X Axis', 'xAxis', cols));
-                tabContent.appendChild(createSel('Y Axis', 'yAxis', cols));
+                tabContent.appendChild(createSel('X Axis', 'xAxis', xOpts));
+                tabContent.appendChild(createSel('Y Axis', 'yAxis', yOpts));
                 tabContent.appendChild(createSel('Color By (Series)', 'colorAxis', ['(None)', ...cols]));
 
                 // Helper for Input Fields
@@ -4494,6 +4857,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 xGroup.style.marginTop = '10px';
                 xGroup.innerHTML = '<strong>X Axis Settings</strong>';
                 xGroup.appendChild(createInput('Label', 'xLabel', 'text', 'Custom X Label'));
+                xGroup.appendChild(createSel('Scale', 'xScale', ['linear', 'logarithmic']));
                 xGroup.appendChild(createCheckbox('Show Gridlines', 'xGrid'));
                 
                 const xRange = document.createElement('div');
@@ -4512,6 +4876,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 yGroup.style.marginTop = '10px';
                 yGroup.innerHTML = '<strong>Y Axis Settings</strong>';
                 yGroup.appendChild(createInput('Label', 'yLabel', 'text', 'Custom Y Label'));
+                yGroup.appendChild(createSel('Scale', 'yScale', ['linear', 'logarithmic']));
                 yGroup.appendChild(createCheckbox('Show Gridlines', 'yGrid'));
 
                 const yRange = document.createElement('div');
@@ -4619,18 +4984,19 @@ function createDashboardChart(type, x, y, parentElement = null) {
         document.body.appendChild(overlay);
     };
 
-    if (type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie') {
+    if (type === 'scatter' || type === 'line' || type === 'bar' || type === 'pie' || type === 'area') {
         canvas.oncontextmenu = (e) => {
             e.preventDefault();
             e.stopPropagation();
             const chart = Chart.getChart(canvas);
             if (chart) openChartSettings(chart);
         };
-        initChart(null);
+        // initChart(null); // Already called above
     }
     
     updateDashboardControlsVisibility();
     updateDashboardEmptyState();
+    if (window.refreshWidgetsPanel) window.refreshWidgetsPanel();
 }
 
 function createLayoutContainer(x, y) {
@@ -4671,7 +5037,11 @@ function createLayoutContainer(x, y) {
     });
     
     const title = document.createElement('span');
-    title.textContent = '📦 Layout Container (Right-click inside to add plots)';
+    
+    const baseName = 'layout_container';
+    const index = getNextWidgetIndex(baseName);
+    title.textContent = `${baseName}_${index}`;
+    
     Object.assign(title.style, {
         cursor: 'text',
         padding: '2px 5px',
@@ -4766,6 +5136,7 @@ function createLayoutContainer(x, y) {
         container.remove();
         updateDashboardControlsVisibility();
         updateDashboardEmptyState();
+        if (window.refreshWidgetsPanel) window.refreshWidgetsPanel();
     };
     
     controls.appendChild(fullBtn);
@@ -4883,6 +5254,7 @@ function createLayoutContainer(x, y) {
     dashboard.appendChild(container);
     updateDashboardControlsVisibility();
     updateDashboardEmptyState();
+    if (window.refreshWidgetsPanel) window.refreshWidgetsPanel();
 }
 
 function addResizeLogic(resizer, container) {
@@ -12676,27 +13048,71 @@ window.addGlobalDashboardTab = function(name, color) {
     button.style.display = 'flex';
     button.style.alignItems = 'center';
     button.style.gap = '5px';
+    button.style.position = 'relative'; // Important for positioning elements inside
+    const bgColor = color || '#ffffff'; // Default to white if null
+    button.style.backgroundColor = bgColor;
+// --- START BEAUTIFUL COLOR PICKER INTEGRATION ---
     
-    const bgColor = color || '';
-    if (bgColor) {
-        button.style.backgroundColor = bgColor;
-        // Adjust text color if needed, but simple for now
-    }
+    // 1. Create a hidden container for the picker
+    const pickerContainer = document.createElement('div');
+    // // Hide the default pickr button, we only want to trigger it via Right Click
+    // pickerContainer.style.position = 'absolute';
+    // pickerContainer.style.opacity = '0';
+    // pickerContainer.style.width = '0';
+    // pickerContainer.style.height = '0';
+    // pickerContainer.style.overflow = 'hidden';
+    // pickerContainer.style.pointerEvents = 'none'; // Ensure it's not clickable
+    
+    button.appendChild(pickerContainer);
+    // 2. Safety Check: Ensure library is loaded to prevent crashing "Create Tab"
+    if (typeof Pickr !== 'undefined') {
+        const pickr = Pickr.create({
+            el: pickerContainer,
+            theme: 'nano', 
+            default: bgColor,
+            swatches: [
+                '#fab4b4', '#fab4ee', '#e29ffc', '#be9ffc', 
+                '#cbe2f5', '#9fbefc', '#6bbee8', '#9cf4f7', 
+                '#58e083', '#a4f5a5', '#daf5a4', '#f5f5a4', 
+                '#fcde8d', '#d9d9d9'
+            ],
+            components: {
+                preview: false,
+                opacity: false,
+                hue: false,
+                interaction: {
+                    hex: false,
+                    rgba: false,
+                    input: false,
+                    save: false
+                }
+            }
+        });
+        const pickrRoot = pickr.getRoot().root;
+        if (pickrRoot) {
+            pickrRoot.style.visibility = 'hidden'; // Hide it
+            pickrRoot.style.position = 'absolute'; // Take out of flow
+            pickrRoot.style.width = '0';
+            pickrRoot.style.height = '0';
+            pickrRoot.style.opacity = '0';
+            pickrRoot.style.pointerEvents = 'none';
+        }
+        // Update button color when picker changes
+        pickr.on('change', (color, source, instance) => {
+            const newColor = color.toHEXA().toString();
+            button.style.backgroundColor = newColor;
+            // Optional: Save to your database here
+        });
 
-    // Color Picker (Right Click)
-    const colorInput = document.createElement('input');
-    colorInput.type = 'color';
-    colorInput.style.display = 'none';
-    colorInput.value = bgColor || '#ffffff';
-    colorInput.onchange = (e) => {
-        button.style.backgroundColor = e.target.value;
-    };
-    button.appendChild(colorInput);
-    
-    button.oncontextmenu = (e) => {
-        e.preventDefault();
-        colorInput.click();
-    };
+        // Right click opens the specific picker for this tab
+        button.oncontextmenu = (e) => {
+            e.preventDefault();
+            // We create a slight delay to ensure the UI is ready
+            setTimeout(() => pickr.show(), 10); 
+        };
+    } else {
+        console.error("Pickr library is missing. Color picker disabled.");
+    }
     
     const titleSpan = document.createElement('span');
     titleSpan.textContent = tabName;
