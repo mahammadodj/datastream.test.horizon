@@ -163,6 +163,9 @@
                 <button class="notepad-tool-btn" id="np-print" title="Print"><i class="material-icons">print</i></button>
                 <div class="notepad-divider"></div>
                 
+                <button class="notepad-tool-btn" id="np-insert-page" title="Insert New Page"><i class="material-icons">note_add</i></button>
+                <div class="notepad-divider"></div>
+                
                 <!-- Formatting Tools -->
                 <select id="np-font-family" class="notepad-select" title="Font Family">
                     <option value="Segoe UI">Segoe UI</option>
@@ -215,8 +218,8 @@
                 <span id="np-font-size-display" style="font-size: 12px; color: #666; min-width: 40px; text-align: center; font-variant-numeric: tabular-nums;">14px</span>
                 <button class="notepad-tool-btn" id="np-font-inc" title="Increase Font Size"><i class="material-icons">add</i></button>
             </div>
-            <div class="notepad-editor-wrapper">
-                <div id="notepad-editor" contenteditable="true" placeholder="Start typing your notes here..."></div>
+            <div class="notepad-editor-wrapper" id="notepad-pages-container">
+                <div class="notepad-page" contenteditable="true" data-page="1"></div>
             </div>
         </div>
       </div>

@@ -205,6 +205,17 @@ function initDashboard() {
             ]
         },
         {
+            id: 'time',
+            title: 'Time',
+            icon: 'date_range',
+            widgets: [
+                { name: 'Calendar', icon: 'calendar_month', type: 'calendar' },
+                { name: 'Date picker', icon: 'event', type: 'datepicker' },
+                { name: 'Date range picker', icon: 'date_range', type: 'daterangepicker' },
+                { name: 'Timeline', icon: 'timeline', type: 'timeline' }
+            ]
+        },
+        {
             id: 'others',
             title: 'Components',
             icon: 'widgets',
@@ -476,15 +487,70 @@ function initWidgetsPanel() {
             // Filter
             if (searchTerm && !title.toLowerCase().includes(searchTerm)) return;
             
-            // Determine icon based on content/class
+            // Determine icon based on type or content/class
             let icon = 'bar_chart'; // default
-            if (widget.classList.contains('dashboard-layout-container')) icon = 'view_quilt';
-            else if (title.includes('Table')) icon = 'table_chart';
-            else if (title.includes('Text')) icon = 'text_fields';
-            else if (title.includes('Button')) icon = 'smart_button';
-            else if (title.includes('Input')) icon = 'input';
-            else if (title.includes('List')) icon = 'list';
-            else if (title.includes('Code')) icon = 'code';
+            const type = widget.dataset.type;
+            
+            const iconMap = {
+                // Charts
+                'pie': 'pie_chart',
+                'scatter': 'scatter_plot',
+                'line': 'show_chart',
+                'area': 'area_chart',
+                'bar': 'bar_chart',
+                'box': 'candlestick_chart',
+                'bubble': 'bubble_chart',
+                'gantt': 'calendar_view_week',
+                'treemap': 'dashboard',
+                'radar': 'radar',
+                
+                // Controls
+                'button': 'smart_button',
+                'checkbox': 'check_box',
+                'dropdown': 'arrow_drop_down_circle',
+                'input': 'text_fields',
+                'multiselect': 'checklist',
+                'radio': 'radio_button_checked',
+                'segmented': 'view_column',
+                'slider': 'linear_scale',
+                'textarea': 'notes',
+                'toggle': 'toggle_on',
+                
+                // Time
+                'calendar': 'calendar_month',
+                'datepicker': 'event',
+                'daterangepicker': 'date_range',
+                'timeline': 'timeline',
+                
+                // Components
+                'table': 'table_chart',
+                'container': 'view_quilt',
+                'query': 'terminal',
+                'widgets-list': 'list',
+                'code': 'code'
+            };
+
+            if (type && iconMap[type]) {
+                icon = iconMap[type];
+            } else {
+                // Fallback for older widgets or unknown types
+                if (widget.classList.contains('dashboard-layout-container')) icon = 'view_quilt';
+                else if (title.toLowerCase().includes('table')) icon = 'table_chart';
+                else if (title.toLowerCase().includes('text')) icon = 'text_fields';
+                else if (title.toLowerCase().includes('button')) icon = 'smart_button';
+                else if (title.toLowerCase().includes('input')) icon = 'input';
+                else if (title.toLowerCase().includes('list')) icon = 'list';
+                else if (title.toLowerCase().includes('code')) icon = 'code';
+                else if (title.toLowerCase().includes('pie')) icon = 'pie_chart';
+                else if (title.toLowerCase().includes('scatter')) icon = 'scatter_plot';
+                else if (title.toLowerCase().includes('line')) icon = 'show_chart';
+                else if (title.toLowerCase().includes('area')) icon = 'area_chart';
+                else if (title.toLowerCase().includes('radar')) icon = 'radar';
+                else if (title.toLowerCase().includes('box')) icon = 'candlestick_chart';
+                else if (title.toLowerCase().includes('bubble')) icon = 'bubble_chart';
+                else if (title.toLowerCase().includes('gantt')) icon = 'calendar_view_week';
+                else if (title.toLowerCase().includes('tree')) icon = 'dashboard';
+            }
             
             const item = document.createElement('div');
             item.className = 'widget-list-item';
@@ -496,9 +562,57 @@ function initWidgetsPanel() {
             
             item.innerHTML = `
                 <i class="material-icons widget-list-icon">${icon}</i>
-                <span class="widget-list-name">${title}</span>
+                <span class="widget-list-name" title="Double click to rename">${title}</span>
                 <i class="material-icons widget-more-btn">more_horiz</i>
             `;
+            
+            // Rename on double click
+            const nameSpan = item.querySelector('.widget-list-name');
+            nameSpan.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                const currentName = nameSpan.textContent;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentName;
+                input.className = 'widget-rename-input';
+                Object.assign(input.style, {
+                    border: '1px solid #0078d4',
+                    borderRadius: '2px',
+                    padding: '2px 4px',
+                    fontSize: '13px',
+                    width: '100%',
+                    outline: 'none'
+                });
+                
+                nameSpan.replaceWith(input);
+                input.focus();
+                input.select();
+                
+                const saveName = () => {
+                    const newName = input.value.trim();
+                    if (newName && newName !== currentName) {
+                        // Update widget title in the DOM
+                        const headerTitle = widget.querySelector('.dashboard-chart-header span');
+                        if (headerTitle) {
+                            headerTitle.textContent = newName;
+                        }
+                    }
+                    // Refresh panel to restore span
+                    window.refreshWidgetsPanel();
+                };
+
+                input.addEventListener('blur', saveName);
+                input.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter') {
+                        saveName();
+                    } else if (ev.key === 'Escape') {
+                        window.refreshWidgetsPanel();
+                    }
+                });
+                
+                // Prevent item click from triggering
+                input.addEventListener('click', (ev) => ev.stopPropagation());
+            });
             
             // Click to select/scroll to
             item.addEventListener('click', () => {

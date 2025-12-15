@@ -2616,6 +2616,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
 
     const container = document.createElement('div');
     container.className = 'dashboard-chart-container';
+    container.dataset.type = type; // Store type for icon lookup
     
     if (parentElement) {
         // Flexbox child style
@@ -3649,7 +3650,7 @@ function createDashboardChart(type, x, y, parentElement = null) {
     }
 
     // Handle UI Controls
-    const uiControls = ['button', 'checkbox', 'input', 'slider', 'date', 'dropdown', 'textarea', 'image', 'text', 'divider', 'spacer'];
+    const uiControls = ['button', 'checkbox', 'input', 'slider', 'date', 'dropdown', 'textarea', 'image', 'text', 'divider', 'spacer', 'calendar', 'datepicker', 'daterangepicker', 'timeline'];
     if (uiControls.includes(type)) {
         // Content Wrapper
         const wrapper = document.createElement('div');
@@ -3677,6 +3678,78 @@ function createDashboardChart(type, x, y, parentElement = null) {
                 cursor: 'pointer'
             });
             wrapper.appendChild(btn);
+        } else if (type === 'calendar') {
+            const cal = document.createElement('div');
+            // Simple Calendar UI
+            const now = new Date();
+            const month = now.toLocaleString('default', { month: 'long' });
+            const year = now.getFullYear();
+            
+            cal.innerHTML = `
+                <div style="border: 1px solid #ccc; border-radius: 4px; overflow: hidden; width: 250px; background: ${isDark ? '#333' : '#fff'};">
+                    <div style="background: #0075ff; color: white; padding: 10px; text-align: center; font-weight: bold;">
+                        ${month} ${year}
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); padding: 10px; gap: 5px; text-align: center; font-size: 12px;">
+                        <div style="font-weight:bold">S</div><div style="font-weight:bold">M</div><div style="font-weight:bold">T</div><div style="font-weight:bold">W</div><div style="font-weight:bold">T</div><div style="font-weight:bold">F</div><div style="font-weight:bold">S</div>
+                        ${Array(30).fill(0).map((_, i) => `<div style="padding: 5px; cursor: pointer; border-radius: 50%; ${i+1 === now.getDate() ? 'background: #0075ff; color: white;' : ''}">${i+1}</div>`).join('')}
+                    </div>
+                </div>
+            `;
+            wrapper.appendChild(cal);
+        } else if (type === 'datepicker') {
+            const date = document.createElement('input');
+            date.type = 'date';
+            Object.assign(date.style, {
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: isDark ? '#444' : 'white',
+                color: isDark ? '#eee' : '#333'
+            });
+            wrapper.appendChild(date);
+        } else if (type === 'daterangepicker') {
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.gap = '10px';
+            div.style.alignItems = 'center';
+            
+            const d1 = document.createElement('input');
+            d1.type = 'date';
+            const d2 = document.createElement('input');
+            d2.type = 'date';
+            const span = document.createElement('span');
+            span.innerText = 'to';
+            
+            [d1, d2].forEach(d => Object.assign(d.style, {
+                padding: '8px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: isDark ? '#444' : 'white',
+                color: isDark ? '#eee' : '#333'
+            }));
+            
+            div.appendChild(d1);
+            div.appendChild(span);
+            div.appendChild(d2);
+            wrapper.appendChild(div);
+        } else if (type === 'timeline') {
+             const div = document.createElement('div');
+             div.style.width = '100%';
+             div.style.padding = '20px 0';
+             
+             div.innerHTML = `
+                <div style="position: relative; height: 2px; background: #ccc; margin: 20px 0;">
+                    <div style="position: absolute; left: 0; top: -4px; width: 10px; height: 10px; background: #0075ff; border-radius: 50%;"></div>
+                    <div style="position: absolute; left: 50%; top: -4px; width: 10px; height: 10px; background: #0075ff; border-radius: 50%;"></div>
+                    <div style="position: absolute; right: 0; top: -4px; width: 10px; height: 10px; background: #0075ff; border-radius: 50%;"></div>
+                    
+                    <div style="position: absolute; left: 0; top: 15px; font-size: 10px;">Start</div>
+                    <div style="position: absolute; left: 50%; top: 15px; font-size: 10px; transform: translateX(-50%);">Mid</div>
+                    <div style="position: absolute; right: 0; top: 15px; font-size: 10px;">End</div>
+                </div>
+             `;
+             wrapper.appendChild(div);
         } else if (type === 'checkbox') {
             const div = document.createElement('div');
             div.style.display = 'flex';
@@ -5005,6 +5078,7 @@ function createLayoutContainer(x, y) {
     
     const container = document.createElement('div');
     container.className = 'dashboard-layout-container';
+    container.dataset.type = 'container'; // Store type
     Object.assign(container.style, {
         position: 'absolute',
         left: `${x}px`,
